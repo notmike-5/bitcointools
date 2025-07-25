@@ -1,0 +1,24 @@
+* Imports
+#+begin_src python :tangle yes :results silent :session pybtc
+from hashes import tagged_hash
+import helpers
+
+#+end_src
+
+* Classes
+#+begin_src python :tangle yes :results silent :session pybtc
+class Leaf():
+    def __init__(self, ver: int, script: str):
+        self.ver = ver  # leaf version
+        self.script = script
+
+    def __str__():
+        print(f"TapLeaf Version: {self.ver}")
+        print(f"Script: {script}")
+#+end_src
+
+* Functions
+#+begin_src python :tangle yes :results silent :session pybtc
+
+
+#+end_src

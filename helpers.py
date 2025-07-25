@@ -1,0 +1,124 @@
+import binascii
+
+def bytes_to_hex(byte_str: bytes) -> int:
+    '''Convert bytes to their hexadecimal representation'''
+    try:
+        return binascii.hexlify(byte_str).decode()
+    except binascii.Error:
+        raise ValueError(f"Invalid bytes: {byte_str}") from binascii.Error
+
+def hex_to_ascii(hex_str: str) -> str:
+    '''convert a hexadecimal value to its ascii equiv'''
+    try:
+        return bytes.fromhex(hex_str).decode('ascii')
+    except UnicodeDecodeError as e:
+        return e
+
+def hex_to_bytes(hex_str: int) -> bytes:
+    '''Convert hex-encoded string to bytes'''
+    try:
+        return binascii.unhexlify(hex_str)
+    except binascii.Error:
+        raise ValueError(f"Invalid hex script: {hex_str}") from binascii.Error
+
+def int_to_bytes(n: int, endian: str = 'big'):
+    if not isinstance(n, int):
+        raise ValueError("int_to_bytes: n must be an integer")
+    if not ((endian == 'big') or (endian == 'little')):
+        raise ValueError("int_to_bytes: endian must be \'big\' (default) or \'little\'")
+    return n.to_bytes((n.bit_length() + 7) // 8, endian)
+
+def reverse_bytes(byte_str: bytes) -> bytes:
+    '''Convert between big- and litttle-endian'''
+    return bytes.fromhex(byte_str)[::-1].hex()
+
+def parse_varint(tx: bytes, cur: int) -> (int, int):
+    '''Parse a variable-length integer from the transaction data
+    and move cursor to appropriate position'''
+    if tx[cur] not in list(range(0x0, 0xff)):
+        raise ValueError(f'parse_varint called on invalid byte {tx[cur]}')
+    if tx[cur] < 0xfd:
+        return tx[cur], cur + 1
+    if tx[cur] == 0xfd:
+        return int.from_bytes(tx[cur+1:cur+3], 'little'), cur + 3
+    if tx[cur] == 0xfe:
+        return int.from_bytes(tx[cur+1:cur+5], 'little'), cur + 5
+    # 0xff (rare)
+    return int.from_bytes(tx[cur+1:cur+9], 'little'), cur + 9
+
+# TODO: for tx inputs we would want the count of them
+def get_compact_size(byte_str: bytes) -> str:
+    '''Get the compact size byte for given script.'''
+    size = len(byte_str)
+    print(f"Byte length is {size}")
+    assert size <= 0xffffffffffffffff # max get_compact_size
+
+    if size <= 0xfc:
+        return hex(size)
+    elif size <= 0xffff:
+        return 'fd'
+    elif size <= 0xffffffff:
+        return 'fe'
+    else:
+        return 'ff'
+
+def hash_sort(arr, n_buckets: int = 997):
+    '''a very fast sorting algorithm for numeric data'''
+    if arr is None:
+        return []
+
+    min_v, max_v = min(arr), max(arr)
+    if min_v == max_v:
+        return arr
+
+    buckets =[[] for _ in range(n_buckets)]
+
+    range_sz = max_v - min_v
+    for n in arr:
+        idx = int(((n - min_v) / range_sz) * (n_buckets - 1))
+        buckets[idx].append(n)
+
+    sorted_out = []
+    for b in buckets:
+        if len(b) == 1:
+            sorted_out.append(b[0])
+        else:
+            b.sort()
+            sorted_out.extend(b)
+
+    return sorted_out
+
+def run_tests():
+    '''Temporary testbench'''
+
+    #
+    # # Test Conversions
+    #
+    assert bytes_to_hex(b'\xde\xad\xbe\xef') == 'deadbeef'
+    print(f"Expected: deadbeef\nGot:\t {bytes_to_hex(b'\xde\xad\xbe\xef')}")
+    #
+    # # Test Compact Sizes
+    #
+    for i in range(0, 252):
+        msg = b'1' * i
+        size_byte = get_compact_size(msg)
+        if size_byte != hex(i):
+            print(f"Expected: {hex(i)}\tGot: {size_byte}")
+
+    msg = b'1' * 253
+    print(f"Expected: 0xfd\nGot:\t {get_compact_size(msg)}")
+
+    msg = b'1' * 65535
+    print(f"Expected: 0xfd\nGot:\t {get_compact_size(msg)}")
+
+    msg = b'1' * 65536
+    print(f"Expected: 0xfe\nGot:\t {get_compact_size(msg)}")
+
+    msg = b'1' * 4294967295
+    print(f"Expected: 0xfe\nGot:\t {get_compact_size(msg)}")
+
+    msg = b'1' * 4294967296
+    print(f"Expected: 0xff\nGot:\t {get_compact_size(msg)}")
+
+if __name__ == '__main__':
+    run_tests()

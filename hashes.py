@@ -1,0 +1,50 @@
+import hashlib
+import subprocess
+
+def sha256(data: bytes) -> bytes:
+    '''Compute the SHA-256 hash of input data'''
+    assert isinstance(data, bytes)
+    return hashlib.sha256(data).digest()
+
+def hash256(data: bytes) -> bytes:
+    '''Compute the double SHA-256 hash of input data'''
+    assert isinstance(data, bytes)
+    return sha256(sha256(data))
+
+def tagged_hash(tag: str, data: bytes) -> bytes:
+    '''Compute the tagged hash of data as per BIP-340'''
+    assert isinstance(data, bytes)
+    assert isinstance(tag, str) or tag is None
+    tag_hash = sha256(tag.encode())
+    return sha256(tag_hash + tag_hash + data)
+
+def ripemd160(data: bytes):
+    '''Compute the RIPEMD-160 hash of input data'''
+    assert isinstance(data, bytes)
+    r = hashlib.new('ripemd160')
+    r.update(data)
+    return r.digest()
+
+def hash160(data: bytes) -> bytes:
+    '''Compute a special double hash'''
+    assert isinstance(data, bytes)
+    return ripemd160(sha256(data))
+
+def _get_sha256_teststr(data):
+    '''Build string for polling the sha256 reference'''
+    return f"xxd -r -p <<< {data} | sha256sum | tr -d '  -'"
+
+def run_tests():
+    '''Some unit tests'''
+    # Test 1: sha256 hash of hex string ’deadbeef’
+    testdata = 'deadbeef'
+
+    our_hash = sha256(bytes.fromhex(testdata))
+    good_hash = subprocess.getoutput(_get_sha256_teststr(testdata))
+
+    print(f"Test 1: H({testdata}) == {good_hash}")
+    assert our_hash.hex() == good_hash
+    print("Passed")
+
+if __name__ == '__main__':
+    run_tests()
