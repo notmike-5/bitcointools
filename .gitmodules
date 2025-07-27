@@ -1,0 +1,3 @@
+[submodule "secp256k1-py"]
+	path = secp256k1-py
+	url = https://github.com/rustyrussell/secp256k1-py
