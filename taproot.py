@@ -1,10 +1,12 @@
 from hashes import tagged_hash
 from helpers import bytes_to_hex, hex_to_bytes
 
-def tapleaf_hash(script: str, tapscript_ver: hex = '0xc0'):
+def tapleaf_hash(tapscript_ver: hex = '0xc0', script: str = None) -> bytes:
     '''Hash a TapScript'''
-
-    return tagged_hash("TapLeaf", hex_to_bytes(tapscript_ver + + script))
+    if not script:
+        print("Wat? You forgot the tap script.")
+        return None
+    return tagged_hash("TapLeaf", hex_to_bytes(tapscript_ver + script))
 
 def build_taptree(leafhashes: list) -> int:
     '''Build Merkle tree from list of scripts and return root'''
@@ -39,7 +41,7 @@ def compute_taproot_output(internal_pubkey, merkle_root):
 
     return tweaked_pubkey, script_pubkey
 
-def create_taproot_mast(scripts, internal_pubkey_hex):
+def create_taproot_mast(internal_pubkey_hex, scripts):
     '''Create a Taproot MAST from scripts and internal pubkey'''
     try:
         internal_pubkey = hex_to_bytes(internal_pubkey_hex)

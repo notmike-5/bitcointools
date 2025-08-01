@@ -26,9 +26,6 @@ import params
 # Base58 encoding
 ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
-# Bech32
-Bech32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-
 # Version Bytes
 ZERO = P2PKH_VER = b'\x00'  # P2PK/P2PKH - Base58 result prefix 1
 P2SH_VER = SEGWIT_VER = b'\x05'  # P2SH/P2WSH P2WSH Base58 result prefix 3
@@ -36,7 +33,6 @@ TESTNET_VER = b'\x6f'  # Base58 result prefix m or n
 PRIVKEY_WIF = b'\x80'  # Base58 result prefix 5, K, or L
 
 # Prefixes
-Bech32_PREFIX = 'bc'
 COMPRESSED_PUBKEY_PREFIX_02  = '02' # even
 COMPRESSED_PUBKEY_PREFIX_03  = '03' # odd
 UNCOMPRESSED_PUBKEY_PREFIX = '04'
@@ -125,48 +121,6 @@ def base58check_encode(pubkey: secp256k1.PublicKey):
 
     return pub_addr
 
-
-# Bech32 checksum verif
-def bech32_polymod(values):
-    '''take values mod large polynomial'''
-    GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
-    chk = 1
-    for v in values:
-        b = (chk >> 25)
-        chk = (chk & 0x1ffffff) << 5 ^ v
-        for i in range(5):
-            chk ^= GEN[i] if ((b >> i) & 1) else 0
-    return chk
-
-def bech32_hrp_expand(s):
-    '''expand the humand readable part'''
-    return [ord(x) >> 5 for x in s] | [0] + [ord(x) & 31 for x in s]
-
-def bech32_verify_checksum(hrp: str='bc', data=None):
-    '''verify a Bech32 checksum'''
-    if not data:
-        raise ValueError("bech32 data portion must be provided")
-    return bech32_polymod(bech32_hrp_expand(hrp) + data) == 1
-
-# Bech32 chemsum generation
-def bech32_create_checksum(hrp: str=None, data=None):
-    '''create a Bech32 checksum'''
-    if not data:
-        raise ValueError("bech32 data portion must be provided")
-    values = bech32_hrp_expand(hrp) + data
-    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ 1
-    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
-
-def bech32_encode(v: str=None):
-    '''return the Bech32 encoding of a string'''
-    if not v:
-        raise ValueError("bech32 encoding requires v to be a hex string")
-    v = bin(int(v, 16))[2:].zfill(len(v) * 4)
-    if len(v) % 5:      # pad with zeros if needed
-        v += '0' * (5 - len(v) % 5)
-    v = [int(v[i:i+5], 2) for i in range(0, len(v), 5)]
-    return v
-
 # TODO: combine these tests
 def test_p2pkh_from_privkey(privkey: str, addr: str = None, debug: bool = False):
     '''Test that the given P2PK address is generated from the given private key'''
@@ -176,14 +130,14 @@ def test_p2pkh_from_privkey(privkey: str, addr: str = None, debug: bool = False)
     if addr is not None:
         if address == addr:
             print("Test Passed")
-            print(f"Private Key: {privkey.serialize()} -> Public Key: {pubkey.serialize().hex()} -> Address: {address}")
+            print(f"Private Key: {privkey.serialize()} -> Public Key: {pubkey.serialize().hex()} -> Address: {address}\n")
             return True
         else:
             print("Test Failed")
             print(f"Expected: {addr},\t Got: {address}")
             return False
 
-    print(f"Private Key: {privkey.serialize()} -> Public Key: {pubkey.serialize().hex()} -> Address: {address}")
+    print(f"Private Key: {privkey.serialize()} -> Public Key: {pubkey.serialize().hex()} -> Address: {address}\n")
 
 def test_p2pkh_from_pubkey(pubkey: str, addr: str = None, debug: bool = False) -> None:
     '''Test that the given P2PK address is generated from the given public key'''
@@ -191,9 +145,9 @@ def test_p2pkh_from_pubkey(pubkey: str, addr: str = None, debug: bool = False) -
     address = get_p2pkh_address(pubkey=pubkey, debug=debug)
 
     if addr is not None:
-        print("Test Passed") if addr == address else print("Test Failed")
+        print("\nTest Passed") if addr == address else print("\nTest Failed")
 
-    print(f"Public Key: {pubkey.serialize().hex()} -> Address: {address}")
+    print(f"Public Key: {pubkey.serialize().hex()} -> Address: {address}\n")
 
 def run_tests():
     # example taken from Mastering Bitcoin v2 by Andreas Antonopoulos page 78

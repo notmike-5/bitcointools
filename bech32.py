@@ -139,4 +139,4 @@ def witprog_to_hex(witprog: List[int]=None):
 
 def witprog_to_bytelist(witprog: str=None):
     '''get the witness program as a list of bytes'''
-    return [int(witprog[i:i+2], 16) for i in range(0, len(witprog), 2)]
+    return [witprog[i:i+2] for i in range(0, len(witprog), 2)]

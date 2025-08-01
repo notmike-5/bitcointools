@@ -28,6 +28,7 @@ def int_to_bytes(n: int, endian: str = 'big'):
         raise ValueError("int_to_bytes: endian must be \'big\' (default) or \'little\'")
     return n.to_bytes((n.bit_length() + 7) // 8, endian)
 
+# TODO refactor so this makes sense for what it does
 def reverse_bytes(byte_str: bytes) -> bytes:
     '''Convert between big- and litttle-endian'''
     return bytes.fromhex(byte_str)[::-1].hex()
@@ -47,20 +48,19 @@ def parse_varint(tx: bytes, cur: int) -> (int, int):
     return int.from_bytes(tx[cur+1:cur+9], 'little'), cur + 9
 
 # TODO: for tx inputs we would want the count of them
-def get_compact_size(byte_str: bytes) -> str:
+def get_compact_size(n: int=None) -> str:
     '''Get the compact size byte for given script.'''
-    size = len(byte_str)
-    print(f"Byte length is {size}")
-    assert size <= 0xffffffffffffffff # max get_compact_size
+    if not (0 <= n and n <= 0xffffffffffffffff):  # max get_compact_size
+        raise ValueError("get_compact_size, 0 <= n <= 0xffffffffffffffff must be an integer")
 
-    if size <= 0xfc:
-        return hex(size)
-    elif size <= 0xffff:
-        return 'fd'
-    elif size <= 0xffffffff:
-        return 'fe'
+    if n <= 0xfc:  # single-byte case when  size < 0xffff
+        return hex(n)[2:].zfill(2)
+    elif n <= 0xffff:
+        return 'fd' + n.to_bytes(2, 'little')  #TODO: handle cases where we have to encode an actual length
+    elif n <= 0xffffffff:
+        return 'fe' + n.to_bytes(4, 'little')
     else:
-        return 'ff'
+        return 'ff' + n.to_bytes(8, 'little')
 
 def hash_sort(arr, n_buckets: int = 997):
     '''a very fast sorting algorithm for numeric data'''
