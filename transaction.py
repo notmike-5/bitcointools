@@ -336,9 +336,9 @@ def run_test(test: dict, isSegwit = False):
 
 
 def run_tests():
-    #run_test(SATHAL)
-    #run_test(P2SH_TEST)
-    #run_test(Segwit_v0_Test)
+    run_test(SATHAL)
+    run_test(P2SH_TEST)
+    run_test(Segwit_v0_Test)
     run_test(First_P2TR_test)
 
 if __name__ == '__main__':
