@@ -29,7 +29,7 @@ def make_rpc_call(method: str = "getblockchaininfo",
                   password: str = None,
                   datadir: str ="~/.bitcoin",
                   rpc_ip: str = "127.0.0.1",
-                  rpc_port: int = 8332) -> int | dict
+                  rpc_port: int = 8332) -> int | dict:
     '''Handle rpc calls to the bitcoind'''
 
     headers = {'content-type': 'application/json'}
