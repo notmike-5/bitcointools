@@ -1,9 +1,148 @@
+* Docs
+** Breaking down a transaction
+*** P2PK/P2PKH
+Below example uses block 71000 that has just one simple transaction (and a coinbase)
+
+raw transaction:
+0100000001fb4209d1cea10533e43658cfb97d951b8336540ff23e13ed1f885d8eb29fee70000000008b483045022043804fdeb4fb1b0f9ef0172a24445695a10a303f228f9a2a36d3347f0f5fed7c022100d8b09cfa712d1936df08318c20a6745ec54974464299a1c886e4782055ebd6c9014104e9456d14351e5bd0ee65158ad30068ee2411cdd307142dfbf11ed905df8284a1cd82e977fbb294895d9fdfa1c8bc37d619d3dc422420ad63110ac3ea74fe74a7ffffffff01005ed0b2000000001976a914da29060ed73fb201083cc748c7b58d7a290ea7ad88ac00000000
+
+broken out:
+version (4-byte, little-endian): 01000000
+input count (compact size): 01
+
+input 1:
+txid: fb4209d1cea10533e43658cfb97d951b8336540ff23e13ed1f885d8eb29fee70
+vout (little-endian): 00000000
+scriptSig size (compact size): 8b
+scriptSig: 483045022043804fdeb4fb1b0f9ef0172a24445695a10a303f228f9a2a36d3347f0f5fed7c022100d8b09cfa712d1936df08318c20a6745ec54974464299a1c886e4782055ebd6c9014104e9456d14351e5bd0ee65158ad30068ee2411cdd307142dfbf11ed905df8284a1cd82e977fbb294895d9fdfa1c8bc37d619d3dc422420ad63110ac3ea74fe74a7
+sequence (little endian): ffffffff
+
+output count: 01
+
+ouptut 1:
+amount (little-endian): 005ed0b200000000
+scriptPubKey size (compact-size): 19
+scriptPubKey: 76a914da29060ed73fb201083cc748c7b58d7a290ea7ad88ac
+
+locktime (4-byte, little-endian): 00000000
+
+*** P2TR
+This is from the first P2TR utxo. nice.
+
+raw transaction:
+01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff020000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e204062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174affd30a00
+
+broken out:
+version (4-byte, little-endian): 01000000
+marker (byte): 00 # MUST be 0x00 indicates SegWit
+flag (byte): 01   # 1 or greater indicates SegWit
+
+input count (compact size): 01
+
+input 1:
+txid (32-byte, native byte order): d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c054958
+vout (4-byte, little-endian): 01000000
+scriptSig size (compact size): 00  # SegWit
+scriptSig (variable): empty
+sequence (4-byte, little-endian): fdffffff
+
+output count  (compact size): 02
+
+output 1:
+amount (8-byte, little-endian): 0000000000000000
+scriptPubKey size (compact size): 0x31 (49-bytes)
+scriptPubKey (variable): 6a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20406269746275673432
+
+output 2:
+amount (8-byte, little-endian): 9e06010000000000
+scriptPubKey size (compact size): 0x22 (34-bytes)
+scriptPubKey: 5120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9
+
+the Witness
+
+stack items (compact size): 01
+size (compact size): 0x40 (64-bytes):
+a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174a
+
+locktime (4-byte, little-endian): ffd30a00
+
+"txid": "33e794d097969002ee05d336686fc03c9e15a597c1b9827669460fac98799036",
+  "hash": "af2fdc4c54270adfb2a65987a79ed2f0e771a779ea48bb0ef06095b48395f74d",
+  "version": 1,
+  "size": 220,
+  "vsize": 169,
+  "weight": 676,
+  "locktime": 709631,
+  "vin": [
+    {
+      "txid": "5849051cf3ce36257a1d844e28959f368a35adc9520fb9679175f6cdf8c1f1d1",
+      "vout": 1,
+      "scriptSig": {
+        "asm": "",
+        "hex": ""
+      },
+      "txinwitness": [
+        "a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174a"
+      ],
+      "prevout": {
+        "generated": false,
+        "height": 709632,
+        "value": 0.00088480,
+        "scriptPubKey": {
+          "asm": "1 339ce7e165e67d93adb3fef88a6d4beed33f01fa876f05a225242b82a631abc0",
+          "desc": "rawtr(339ce7e165e67d93adb3fef88a6d4beed33f01fa876f05a225242b82a631abc0)#qdul2rkc",
+          "hex": "5120339ce7e165e67d93adb3fef88a6d4beed33f01fa876f05a225242b82a631abc0",
+          "address": "bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k",
+          "type": "witness_v1_taproot"
+        }
+      },
+      "sequence": 4294967293
+    }
+  ],
+  "vout": [
+    {
+      "value": 0.00000000,
+      "n": 0,
+      "scriptPubKey": {
+        "asm": "OP_RETURN 49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20406269746275673432",
+        "desc": "raw(6a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20406269746275673432)#nqj73zc7",
+        "hex": "6a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e20406269746275673432",
+        "type": "nulldata"
+      }
+    },
+    {
+      "value": 0.00067230,
+      "n": 1,
+      "scriptPubKey": {
+        "asm": "1 a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9",
+        "desc": "rawtr(a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9)#er2wu6lc",
+        "hex": "5120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f9",
+        "address": "bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297",
+        "type": "witness_v1_taproot"
+      }
+    }
+  ],
+  "fee": 0.00021250,
+  "hex": "01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff020000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e204062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174affd30a00",
+  "blockhash": "00000000000000000001f9ee4f69cbc75ce61db5178175c2ad021fe1df5bad8f",
+  "confirmations": 197299,
+  "time": 1636868413,
+  "blocktime": 1636868413
+}
+* Imports
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
+
 from typing import List
 
 # import sys
 # sys.path.append('..')
 from helpers import bytes_to_hex, get_compact_size, hex_to_bytes, reverse_bytes
 from hashes import hash256
+
+#+end_src
+
+* TxIn Class
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
 class TxIn:
     '''Input class for Bitcoin transactions'''
@@ -46,6 +185,11 @@ class TxIn:
         b += self.sequence.to_bytes(4, 'little')
         return b
 
+#+end_src
+
+* SegwitTxIn
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
+
 class SegwitTxIn(TxIn):
     '''Segregated Witness (SegWit) transaction class, moves scriptSig to witness area'''
 
@@ -68,6 +212,11 @@ class SegwitTxIn(TxIn):
         b += self.sequence.to_bytes(4, 'little')
         return b
 
+#+end_src
+
+* TxOut Class
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
+
 class TxOut:
     '''Output class for Bitcoin transactions'''
     def __init__(self, amount: int=None, scriptPubKey: str=None):
@@ -89,6 +238,11 @@ class TxOut:
         b += hex_to_bytes(self.scriptPubKey_size)
         b += hex_to_bytes(self.scriptPubKey)
         return b
+
+#+end_src
+
+* Transaction Class
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
 class Transaction:
     '''Base class for (Legacy) Bitcoin P2PK/P2PKH transactions'''
@@ -140,6 +294,11 @@ class Transaction:
         # locktime
         b += self.locktime.to_bytes(4, 'little')
         return bytes_to_hex(b)
+
+#+end_src
+
+* SegwitTransaction
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
 class SegwitTransaction(Transaction):
     '''SegwitTransaction Class'''
@@ -211,6 +370,11 @@ class SegwitTransaction(Transaction):
 
         return bytes_to_hex(b)
 
+#+end_src
+
+* TaprootTransaction Class
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
+
 class TaprootTransaction(SegwitTransaction):
     '''TaprootTransaction class'''
 
@@ -219,6 +383,11 @@ class TaprootTransaction(SegwitTransaction):
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
         if MAST:
             pass
+
+#+end_src
+
+* Test Cases
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
 # Satoshi --> Hal (P2PK)
 HAL_BLOCK_N = 170
@@ -318,6 +487,11 @@ First_P2TR_test = { 'desc': "the first P2TR tx",
                     'HEX': "01000000000101d1f1c1f8cdf6759167b90f52c9ad358a369f95284e841d7a2536cef31c0549580100000000fdffffff020000000000000000316a2f49206c696b65205363686e6f7272207369677320616e6420492063616e6e6f74206c69652e204062697462756734329e06010000000000225120a37c3903c8d0db6512e2b40b0dffa05e5a3ab73603ce8c9c4b7771e5412328f90140a60c383f71bac0ec919b1d7dbc3eb72dd56e7aa99583615564f9f99b8ae4e837b758773a5b2e4c51348854c8389f008e05029db7f464a5ff2e01d5e6e626174affd30a00",
                     'nLocktime': 709631 }
 
+#+end_src
+
+* Test Functions
+#+begin_src python :tangle ../transaction.py :results silent :session pybtc
+
 def run_test(test: dict):
     '''Run a single test'''
 
@@ -361,5 +535,12 @@ def run_tests():
     run_test(Segwit_v0_Test)
     run_test(First_P2TR_test)
 
+#+end_src
+
+* Main
+#+begin_src python :tangle ../transaction.py :results silent :session
+
 if __name__ == '__main__':
     run_tests()
+
+#+end_src
