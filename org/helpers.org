@@ -17,7 +17,7 @@ def bytes_to_hex(byte_str: bytes) -> int:
 def hex_to_ascii(hex_str: str) -> str:
     '''convert a hexadecimal value to its ascii equiv'''
     try:
-        return bytes.fromhex(hex_str).decode('ascii')
+        return bytes.fromhex(hex_str).decode('utf-8')
     except UnicodeDecodeError as e:
         return e
 
