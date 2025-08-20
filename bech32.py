@@ -1,5 +1,7 @@
 from enum import Enum
 from typing import List
+import binascii
+import unittest
 
 class Encoding(Enum):
     '''enum type to list supported encodings'''
@@ -78,7 +80,6 @@ def bech32_decode(bech):
 
     return (hrp, data[:-6], spec)
 
-
 def convertbits(data, frombits, tobits, pad=True):
     """General power-of-2 base conversion."""
     acc = 0
@@ -101,7 +102,6 @@ def convertbits(data, frombits, tobits, pad=True):
         return None
     return ret
 
-
 def decode(hrp, addr):
     """Decode a SegWit address."""
     hrpgot, data, spec = bech32_decode(addr)
@@ -121,7 +121,6 @@ def decode(hrp, addr):
 
     return (data[0], decoded)
 
-
 def encode(hrp, witver, witprog):
     """Encode a SegWit address."""
     spec = Encoding.BECH32 if witver == 0 else Encoding.BECH32M
@@ -131,12 +130,205 @@ def encode(hrp, witver, witprog):
 
     return ret
 
-def witprog_to_hex(witprog: List[int]=None):
-    '''get the witness programas a hexidecimal number'''
-    if not witprog:
-        raise ValueError("Wot! You must provide a witness program")
-    return ''.join([format(b, '02x') for b in witprog])
+def s2w(script: str) -> List[int]:
+    """convert a script/witprog hex string to a List[int] of its bytes"""
+    return [int(f"{script[i:i+2]}", 16) for i in  range(0, len(script), 2)]
 
-def witprog_to_bytelist(witprog: str=None):
-    '''get the witness program as a list of bytes'''
-    return [witprog[i:i+2] for i in range(0, len(witprog), 2)]
+
+def get_bech32_address(taptree_root: str, witness_version: int = 1, hrp: str = 'bc') -> str:
+    """helper to generate  addresses from the taptree root"""
+    spec = Encoding.BECH32 if witness_version == 0 else Encoding.BECH32M
+    witness_program = s2w(taptree_root)
+    data = [witness_version] + convertbits(witness_program, 8, 5)
+
+    return bech32_encode(hrp, data, spec)
+
+# These tests come from BIP-0350 by sipa, see: https://github.com/sipa/bech32/blob/master/ref/python/tests.py
+
+def segwit_scriptpubkey(witver, witprog):
+    """Construct a Segwit scriptPubKey for a given witness program."""
+    return bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog)
+
+VALID_BECH32 = [
+    "A12UEL5L",
+    "a12uel5l",
+    "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
+    "abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw",
+    "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
+    "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
+    "?1ezyfcl",
+]
+
+VALID_BECH32M = [
+    "A1LQFN3A",
+    "a1lqfn3a",
+    "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6",
+    "abcdef1l7aum6echk45nj3s0wdvt2fg8x9yrzpqzd3ryx",
+    "11llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllludsr8",
+    "split1checkupstagehandshakeupstreamerranterredcaperredlc445v",
+    "?1v759aa",
+]
+
+INVALID_BECH32 = [
+    " 1nwldj5",          # HRP character out of range
+    "\x7F" + "1axkwrx",  # HRP character out of range
+    "\x80" + "1eym55h",  # HRP character out of range
+    # overall max length exceeded
+    "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+    "pzry9x0s0muk",      # No separator character
+    "1pzry9x0s0muk",     # Empty HRP
+    "x1b4n0q5v",         # Invalid data character
+    "li1dgmt3",          # Too short checksum
+    "de1lg7wt" + "\xFF", # Invalid character in checksum
+    "A1G7SGD8",          # checksum calculated with uppercase form of HRP
+    "10a06t8",           # empty HRP
+    "1qzzfhee",          # empty HRP
+]
+
+INVALID_BECH32M = [
+    " 1xj0phk",          # HRP character out of range
+    "\x7F" + "1g6xzxy",  # HRP character out of range
+    "\x80" + "1vctc34",  # HRP character out of range
+    # overall max length exceeded
+    "an84characterslonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11d6pts4",
+    "qyrz8wqd2c9m",      # No separator character
+    "1qyrz8wqd2c9m",     # Empty HRP
+    "y1b0jsk6g",         # Invalid data character
+    "lt1igcx5c0",        # Invalid data character
+    "in1muywd",          # Too short checksum
+    "mm1crxm3i",         # Invalid character in checksum
+    "au1s5cgom",         # Invalid character in checksum
+    "M1VUXWEZ",          # Checksum calculated with uppercase form of HRP
+    "16plkw9",           # Empty HRP
+    "1p2gdwpf",          # Empty HRP
+]
+
+VALID_ADDRESS = [
+    ["BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4", "0014751e76e8199196d454941c45d1b3a323f1433bd6"],
+    ["tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
+     "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"],
+    ["bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7kt5nd6y",
+     "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6"],
+    ["BC1SW50QGDZ25J", "6002751e"],
+    ["bc1zw508d6qejxtdg4y5r3zarvaryvaxxpcs", "5210751e76e8199196d454941c45d1b3a323"],
+    ["tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy",
+     "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
+    ["tb1pqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesf3hn0c",
+     "5120000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"],
+    ["bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+     "512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"],
+]
+
+INVALID_ADDRESS = [
+    # Invalid HRP
+    "tc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq5zuyut",
+    # Invalid checksum algorithm (bech32 instead of bech32m)
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqh2y7hd",
+    # Invalid checksum algorithm (bech32 instead of bech32m)
+    "tb1z0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqglt7rf",
+    # Invalid checksum algorithm (bech32 instead of bech32m)
+    "BC1S0XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ54WELL",
+    # Invalid checksum algorithm (bech32m instead of bech32)
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kemeawh",
+    # Invalid checksum algorithm (bech32m instead of bech32)
+    "tb1q0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq24jc47",
+    # Invalid character in checksum
+    "bc1p38j9r5y49hruaue7wxjce0updqjuyyx0kh56v8s25huc6995vvpql3jow4",
+    # Invalid witness version
+    "BC130XLXVLHEMJA6C4DQV22UAPCTQUPFHLXM9H8Z3K2E72Q4K9HCZ7VQ7ZWS8R",
+    # Invalid program length (1 byte)
+    "bc1pw5dgrnzv",
+    # Invalid program length (41 bytes)
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v8n0nx0muaewav253zgeav",
+    # Invalid program length for witness version 0 (per BIP141)
+    "BC1QR508D6QEJXTDG4Y5R3ZARVARYV98GJ9P",
+    # Mixed case
+    "tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vq47Zagq",
+    # More than 4 padding bits
+    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7v07qwwzcrf",
+    # Non-zero padding in 8-to-5 conversion
+    "tb1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vpggkg4j",
+    # Empty data section
+    "bc1gmk9yu",
+]
+
+INVALID_ADDRESS_ENC = [
+    ("BC", 0, 20),
+    ("bc", 0, 21),
+    ("bc", 17, 32),
+    ("bc", 1, 1),
+    ("bc", 16, 41),
+]
+
+class TestSegwitAddress(unittest.TestCase):
+    """Unit test class for segwit addressess."""
+
+    def test_valid_checksum(self):
+        """Test checksum creation and validation."""
+        for spec in Encoding:
+            tests = VALID_BECH32 if spec == Encoding.BECH32 else VALID_BECH32M
+            for test in tests:
+                hrp, _, dspec = bech32_decode(test)
+                self.assertTrue(hrp is not None and dspec == spec)
+                pos = test.rfind('1')
+                test = test[:pos+1] + chr(ord(test[pos + 1]) ^ 1) + test[pos+2:]
+                hrp, _, dspec = bech32_decode(test)
+                self.assertIsNone(hrp)
+
+    def test_invalid_checksum(self):
+        """Test validation of invalid checksums."""
+        for spec in Encoding:
+            tests = INVALID_BECH32 if spec == Encoding.BECH32 else INVALID_BECH32M
+            for test in tests:
+                hrp, _, dspec = bech32_decode(test)
+                self.assertTrue(hrp is None or dspec != spec)
+
+    def test_valid_address(self):
+        """Test whether valid addresses decode to the correct output."""
+        for (address, hexscript) in VALID_ADDRESS:
+            hrp = "bc"
+            witver, witprog = decode(hrp, address)
+            if witver is None:
+                hrp = "tb"
+                witver, witprog = decode(hrp, address)
+            self.assertIsNotNone(witver, address)
+            scriptpubkey = segwit_scriptpubkey(witver, witprog)
+            self.assertEqual(scriptpubkey, binascii.unhexlify(hexscript))
+            addr = encode(hrp, witver, witprog)
+            self.assertEqual(address.lower(), addr)
+
+    def test_invalid_address(self):
+        """Test whether invalid addresses fail to decode."""
+        for test in INVALID_ADDRESS:
+            witver, _ = decode("bc", test)
+            self.assertIsNone(witver)
+            witver, _ = decode("tb", test)
+            self.assertIsNone(witver)
+
+    def test_invalid_address_enc(self):
+        """Test whether address encoding fails on invalid input."""
+        for hrp, version, length in INVALID_ADDRESS_ENC:
+            code = encode(hrp, version, [0] * length)
+            self.assertIsNone(code)
+
+if __name__ == "__main__":
+    # BIP-0341 Segwit v1 ("Taproot") / bech32 Encoding Tests
+    # from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
+    assert get_bech32_address("53a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343") == "bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5"
+    assert get_bech32_address("147c9c57132f6e7ecddba9800bb0c4449251c92a1e60371ee77557b6620f3ea3") == "bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586"
+    assert get_bech32_address("e4d810fd50586274face62b8a807eb9719cef49c04177cc6b76a9a4251d5450e") == "bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5"
+    assert get_bech32_address("712447206d7a5238acc7ff53fbe94a3b64539ad291c7cdbc490b7577e4b17df5") == "bc1pwyjywgrd0ffr3tx8laflh6228dj98xkjj8rum0zfpd6h0e930h6saqxrrm"
+    assert get_bech32_address("77e30a5522dd9f894c3f8b8bd4c4b2cf82ca7da8a3ea6a239655c39c050ab220") == "bc1pwl3s54fzmk0cjnpl3w9af39je7pv5ldg504x5guk2hpecpg2kgsqaqstjq"
+    assert get_bech32_address("91b64d5324723a985170e4dc5a0f84c041804f2cd12660fa5dec09fc21783605") == "bc1pjxmy65eywgafs5tsunw95ruycpqcqnev6ynxp7jaasylcgtcxczs6n332e"
+    assert get_bech32_address("75169f4001aa68f15bbed28b218df1d0a62cbbcf1188c6665110c293c907b831") == "bc1pw5tf7sqp4f50zka7629jrr036znzew70zxyvvej3zrpf8jg8hqcssyuewe"
+
+    # BIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests
+    # from https://github.com/jbride/bips/blob/p2tsh/bip-0360/ref-impl/common/tests/data/p2tsh_construction.json
+    assert get_bech32_address("c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b", witness_version=2) == "bc1zc5jhzjnlf8pg4mdmhfuvqpvnr2quyd9j7mye5uly6psg9twghu4ssr0v9k"
+    assert get_bech32_address("6c2dc106ab816b73f9d07e3cd1ef2c8c1256f519748e0813e4edd2405d277bef" , witness_version=2) == "bc1zdskuzp4ts94h87ws0c7drmev3sf9dagewj8qsylyahfyqhf800hsam4d6e"
+    assert get_bech32_address("41646f8c1fe2a96ddad7f5471bc4fee7da98794ef8c45a4f4fc6a559d60c9f6b", witness_version=2) == "bc1zg9jxlrqlu25kmkkh74r3h387uldfs72wlrz95n60c6j4n4svna4s4lhfhe"
+    assert get_bech32_address("ab179431c28d3b68fb798957faf5497d69c883c6fb1e1cd9f81483d87bac90cc", witness_version=2) == "bc1z4vtegvwz35ak37me39tl4a2f045u3q7xlv0pek0czjpas7avjrxqz20g2y"
+    assert get_bech32_address("ccbd66c6f7e8fdab47b3a486f59d28262be857f30d4773f2d5ea47f7761ce0e2", witness_version=2) == "bc1zej7kd3hhar76k3an5jr0t8fgyc47s4lnp4rh8uk4afrlwasuur3qzgewqq"
+    assert get_bech32_address("2f6b2c5397b6d68ca18e09a3f05161668ffe93a988582d55c6f07bd5b3329def", witness_version=2) == "bc1z9a4jc5uhkmtgegvwpx3lq5tpv68layaf3pvz64wx7paatvejnhhsv52lcv"
+
+    unittest.main()
