@@ -1,5 +1,7 @@
 from hashes import tagged_hash
 from helpers import bytes_to_hex, hex_to_bytes
+import json
+from pprint import pprint
 
 def tapleaf_hash(tapscript_ver: hex = '0xc0', script: str = None) -> bytes:
     '''Hash a TapScript'''
@@ -54,3 +56,47 @@ def create_taproot_mast(internal_pubkey_hex, scripts):
         }
     except Exception as e:
         raise ValueError(f"Error creating Taproot MAST: {str(e)}") from e
+
+def run_tests(test_vectors: str="test/BIP341_wallet_test_vectors.json"):
+    with open(test_vectors, 'r') as f:
+
+        vectors = json.load(f)
+
+        # scriptPubKey Test Vectors
+        i=1
+        for v in vectors['scriptPubKey']:
+            given = v['given']
+            intermediary = v['intermediary']
+            expected = v['expected']
+
+            internal_pubkey = given['internalPubkey']
+            script_tree = given['scriptTree']
+
+            try:
+                leaf_hashes = intermediary['leafHashes']
+            except:
+                pass
+
+            merkle_root = intermediary['merkleRoot']
+            tweak = intermediary['tweak']
+            tweaked_pubkey = intermediary['tweakedPubkey']
+
+            script_pubkey = expected['scriptPubKey']
+            bip350_address = expected['bip350Address']
+            try:
+                script_path_control_blocks = expected['scriptPathControlBlocks']
+            except:
+                pass
+            print(f"Test {i}")
+            print("*******")
+            pprint(f"Given: {given}")
+            print()
+            pprint(f"Intermediary: {intermediary}")
+            print()
+            pprint(f"Expected: {expected}")
+            print()
+
+            i += 1
+
+if __name__ == '__main__':
+    run_tests()
