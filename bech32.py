@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import List
+from helpers import get_tests
 import binascii
 import unittest
 
@@ -135,6 +136,7 @@ def s2w(script: str) -> List[int]:
     return [int(f"{script[i:i+2]}", 16) for i in  range(0, len(script), 2)]
 
 
+# TODO: Get rid of this function and prefer a better use of encode()
 def get_bech32_address(taptree_root: str, witness_version: int = 1, hrp: str = 'bc') -> str:
     """helper to generate  addresses from the taptree root"""
     spec = Encoding.BECH32 if witness_version == 0 else Encoding.BECH32M
@@ -312,23 +314,33 @@ class TestSegwitAddress(unittest.TestCase):
             self.assertIsNone(code)
 
 if __name__ == "__main__":
+
     # BIP-0341 Segwit v1 ("Taproot") / bech32 Encoding Tests
     # from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
-    assert get_bech32_address("53a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343") == "bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5"
-    assert get_bech32_address("147c9c57132f6e7ecddba9800bb0c4449251c92a1e60371ee77557b6620f3ea3") == "bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586"
-    assert get_bech32_address("e4d810fd50586274face62b8a807eb9719cef49c04177cc6b76a9a4251d5450e") == "bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5"
-    assert get_bech32_address("712447206d7a5238acc7ff53fbe94a3b64539ad291c7cdbc490b7577e4b17df5") == "bc1pwyjywgrd0ffr3tx8laflh6228dj98xkjj8rum0zfpd6h0e930h6saqxrrm"
-    assert get_bech32_address("77e30a5522dd9f894c3f8b8bd4c4b2cf82ca7da8a3ea6a239655c39c050ab220") == "bc1pwl3s54fzmk0cjnpl3w9af39je7pv5ldg504x5guk2hpecpg2kgsqaqstjq"
-    assert get_bech32_address("91b64d5324723a985170e4dc5a0f84c041804f2cd12660fa5dec09fc21783605") == "bc1pjxmy65eywgafs5tsunw95ruycpqcqnev6ynxp7jaasylcgtcxczs6n332e"
-    assert get_bech32_address("75169f4001aa68f15bbed28b218df1d0a62cbbcf1188c6665110c293c907b831") == "bc1pw5tf7sqp4f50zka7629jrr036znzew70zxyvvej3zrpf8jg8hqcssyuewe"
+    V = get_tests("test/BIP341_wallet_test_vectors.json")
+
+    print("\nBIP-0341 Segwit v1 (Taproot) / bech32 Encoding Tests\n", '-' * 50)
+    for v in V['scriptPubKey']:
+        tweaked_pubkey = v['intermediary']['tweakedPubkey']
+        derived_addr = get_bech32_address(tweaked_pubkey)
+        assert derived_addr == v['expected']['bip350Address']
+        print(f"Test Passed {tweaked_pubkey} => {derived_addr}")
+
 
     # BIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests
     # from https://github.com/jbride/bips/blob/p2tsh/bip-0360/ref-impl/common/tests/data/p2tsh_construction.json
-    assert get_bech32_address("c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b", witness_version=2) == "bc1zc5jhzjnlf8pg4mdmhfuvqpvnr2quyd9j7mye5uly6psg9twghu4ssr0v9k"
-    assert get_bech32_address("6c2dc106ab816b73f9d07e3cd1ef2c8c1256f519748e0813e4edd2405d277bef" , witness_version=2) == "bc1zdskuzp4ts94h87ws0c7drmev3sf9dagewj8qsylyahfyqhf800hsam4d6e"
-    assert get_bech32_address("41646f8c1fe2a96ddad7f5471bc4fee7da98794ef8c45a4f4fc6a559d60c9f6b", witness_version=2) == "bc1zg9jxlrqlu25kmkkh74r3h387uldfs72wlrz95n60c6j4n4svna4s4lhfhe"
-    assert get_bech32_address("ab179431c28d3b68fb798957faf5497d69c883c6fb1e1cd9f81483d87bac90cc", witness_version=2) == "bc1z4vtegvwz35ak37me39tl4a2f045u3q7xlv0pek0czjpas7avjrxqz20g2y"
-    assert get_bech32_address("ccbd66c6f7e8fdab47b3a486f59d28262be857f30d4773f2d5ea47f7761ce0e2", witness_version=2) == "bc1zej7kd3hhar76k3an5jr0t8fgyc47s4lnp4rh8uk4afrlwasuur3qzgewqq"
-    assert get_bech32_address("2f6b2c5397b6d68ca18e09a3f05161668ffe93a988582d55c6f07bd5b3329def", witness_version=2) == "bc1z9a4jc5uhkmtgegvwpx3lq5tpv68layaf3pvz64wx7paatvejnhhsv52lcv"
+    V = get_tests("test/p2tsh_construction.json")
 
+    print("\nBIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests\n", '-' * 50)
+    for v in V['test_vectors']:
+        if 'merkleRoot' not in v['intermediary']:
+            continue
+        merkle_root = v['intermediary']['merkleRoot']
+        derived_addr = get_bech32_address(merkle_root, witness_version=2)
+        assert derived_addr == v['expected']['bip350Address']
+        print(f"Test Passed {merkle_root} => {derived_addr}")
+
+    # BIP-0173 Bech32 / BIP-0350 Bech32m test vectors for v1+ witness addresses
+    # from https://github.com/sipa/bech32/blob/master/ref/python/tests.py
+    print("\nBIP-0173 / BIP-0350 bech32/bech32m Tests\n", '-' * 50)
     unittest.main()

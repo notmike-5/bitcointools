@@ -1,4 +1,5 @@
 import binascii
+import json
 
 def bytes_to_hex(byte_str: bytes) -> int:
     '''Convert bytes to their hexadecimal representation'''
@@ -87,6 +88,14 @@ def hash_sort(arr, n_buckets: int = 997):
             sorted_out.extend(b)
 
     return sorted_out
+
+def get_tests(test_vector_file):
+    '''helper to load test vectors given in json format'''
+    with open(test_vector_file, 'r') as f:
+        testdata = json.load(f)
+        f.close()
+
+    return testdata
 
 def run_tests():
     '''Temporary testbench'''

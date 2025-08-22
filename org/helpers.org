@@ -1,6 +1,7 @@
 * Imports
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
 import binascii
+import json
 
 #+end_src
 
@@ -98,6 +99,14 @@ def hash_sort(arr, n_buckets: int = 997):
             sorted_out.extend(b)
 
     return sorted_out
+
+def get_tests(test_vector_file):
+    '''helper to load test vectors given in json format'''
+    with open(test_vector_file, 'r') as f:
+        testdata = json.load(f)
+        f.close()
+
+    return testdata
 
 #+end_src
 
