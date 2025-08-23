@@ -1,0 +1,29 @@
+* What is a bitcoin block?
+A Bitcoin block header is an 80-byte structure that includes several
+key components: a version number, a hash of the previous block, a
+Merkle root (which summarizes all transactions in the block), a
+timestamp, a difficulty target, and a nonce. This header serves as a
+summary of the block's contents and is used in the mining process to
+create a valid block hash.
+
+Miners *must* verify the transactions they include in a block, because
+if they don't, some invalid transaction may be included in the
+block. A block with an invalid transaction will not be accepted by the
+network, i.e. full nodes, which means that the miner wasted
+electricity and did not receive any reward.
+
+- block header
+  - version
+  - prev_block
+  - merkle_root
+  - timestamp
+  - bits
+  - nonce
+
+- transaction counter
+- transactions
+
+* Imports
+#+begin_src python :tangle ../block.py :results silent :session pybtc
+
+#+end_src

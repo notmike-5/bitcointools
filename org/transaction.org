@@ -129,6 +129,7 @@ locktime (4-byte, little-endian): ffd30a00
   "time": 1636868413,
   "blocktime": 1636868413
 }
+
 * Imports
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
@@ -378,12 +379,9 @@ class SegwitTransaction(Transaction):
 class TaprootTransaction(SegwitTransaction):
     '''TaprootTransaction class'''
 
-    def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, MAST: List[int]=None, locktime: int=0):
+    def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, iPubkey: int=None, MAST: List[int]=None, locktime: int=0):
         '''Initialize Segwit v1, TaprootTransaction'''
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
-        if MAST:
-            pass
-
 #+end_src
 
 * Test Cases

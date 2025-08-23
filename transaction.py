@@ -214,11 +214,9 @@ class SegwitTransaction(Transaction):
 class TaprootTransaction(SegwitTransaction):
     '''TaprootTransaction class'''
 
-    def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, MAST: List[int]=None, locktime: int=0):
+    def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, iPubkey: int=None, MAST: List[int]=None, locktime: int=0):
         '''Initialize Segwit v1, TaprootTransaction'''
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
-        if MAST:
-            pass
 
 # Satoshi --> Hal (P2PK)
 HAL_BLOCK_N = 170

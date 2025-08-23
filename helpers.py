@@ -1,6 +1,8 @@
 import binascii
 import json
 
+MAX_SIZE = 2**64 - 1
+
 def bytes_to_hex(byte_str: bytes) -> int:
     '''Convert bytes to their hexadecimal representation'''
     try:
@@ -51,17 +53,19 @@ def parse_varint(tx: bytes, cur: int) -> (int, int):
 # TODO: for tx inputs we would want the count of them
 def get_compact_size(n: int=None) -> str:
     '''Get the compact size byte for given script.'''
-    if not (0 <= n and n <= 0xffffffffffffffff):  # max get_compact_size
+    if isinstance(n, float) and n.is_integer():
+        n = int(n)  # Convert integral floats to int
+    if not isinstance(n, int) or not (0 <= n and n <= MAX_SIZE):  # max get_compact_size
         raise ValueError("get_compact_size, 0 <= n <= 0xffffffffffffffff must be an integer")
 
-    if n <= 0xfc:  # single-byte case when  size < 0xffff
+    if n <= 0xfc:                    # single-byte case when  size < 0xffff
         return hex(n)[2:].zfill(2)
     elif n <= 0xffff:
-        return 'fd' + n.to_bytes(2, 'little')  #TODO: handle cases where we have to encode an actual length
+        return 'fd' + n.to_bytes(2, 'little').hex()  #TODO: handle cases where we have to encode an actual length
     elif n <= 0xffffffff:
-        return 'fe' + n.to_bytes(4, 'little')
+        return 'fe' + n.to_bytes(4, 'little').hex()
     else:
-        return 'ff' + n.to_bytes(8, 'little')
+        return 'ff' + n.to_bytes(8, 'little').hex()
 
 def hash_sort(arr, n_buckets: int = 997):
     '''a very fast sorting algorithm for numeric data'''

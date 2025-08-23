@@ -314,6 +314,7 @@ class TestSegwitAddress(unittest.TestCase):
             self.assertIsNone(code)
 
 if __name__ == "__main__":
+    print("\nRunning Bech32/Bech32m Tests...")
 
     # BIP-0341 Segwit v1 ("Taproot") / bech32 Encoding Tests
     # from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
@@ -333,7 +334,8 @@ if __name__ == "__main__":
 
     print("\nBIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests\n", '-' * 50)
     for v in V['test_vectors']:
-        if 'merkleRoot' not in v['intermediary']:
+        if v['intermediary']['merkleRoot'] is None:
+            print("Null Script Tree")
             continue
         merkle_root = v['intermediary']['merkleRoot']
         derived_addr = get_bech32_address(merkle_root, witness_version=2)
