@@ -1,0 +1,45 @@
+import secp256k1
+from hashes import hash160, hash256
+
+# Base58 character set
+ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+# Version Bytes
+ZERO = P2PKH_VER = b'\x00'  # P2PK/P2PKH - Base58 result prefix 1
+P2SH_VER = SEGWIT_VER = b'\x05'  # P2SH/P2WSH P2WSH Base58 result prefix 3
+TESTNET_VER = b'\x6f'  # Base58 result prefix m or n
+PRIVKEY_WIF = b'\x80'  # Base58 result prefix 5, K, or L
+
+def base58_encode(v):
+    '''Encode a string using Base58
+    h/t to github: fortesp/bitcoinaddress
+    '''
+    def iseq(s):  # there are diff versions
+        return s
+
+    origlen = len(v)
+    v = v.lstrip(b'\0')
+    newlen = len(v)
+
+    p, acc = 1, 0
+    for c in iseq(v[::-1]):
+        acc += p * c
+        p = p << 8
+
+    result = ''
+    while acc > 0:
+        acc, mod = divmod(acc, 58)
+        result += ALPHABET[mod]
+
+    return (result + ALPHABET[0] * (origlen - newlen))[::-1]
+
+def base58check_encode(pubkey: secp256k1.PublicKey):
+    '''Base58Check encode the public key'''
+    assert pubkey.serialize()[0] == 0x2 or pubkey.serialize()[0] == 0x3  # only compressed public keys
+
+    hashed_pubkey = hash160(pubkey.serialize())
+    unencoded_addr = ZERO + hashed_pubkey
+    checksum = hash256(unencoded_addr)[:4]
+    pub_addr = base58_encode(unencoded_addr + checksum)
+
+    return pub_addr
