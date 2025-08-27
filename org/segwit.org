@@ -1,11 +1,14 @@
 * Imports
 #+begin_src python :tangle ../segwit.py :results silent :session pybtc
-from helpers import parse_varint
+
+from .helpers import parse_varint
 
 #+end_src
 
+
 * Functions
 #+begin_src python :tangle ../segwit.py :results silent :session pybtc
+
 def sanitize_segwit(tx_hex: int, debug: bool = False) -> int:
     '''Remove the offending pieces of a segwit transaction'''
     tx, i = bytes.fromhex(tx_hex), 0
