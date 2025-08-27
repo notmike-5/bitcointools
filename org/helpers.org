@@ -1,11 +1,14 @@
 * Imports
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
+
 import binascii
 import json
+import random
 
-MAX_SIZE = 2**64 - 1
+MAX_COMPACT_SIZE = 2**64 - 1
 
 #+end_src
+
 
 * Conversions
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
@@ -34,7 +37,7 @@ def hex_to_bytes(hex_str: int) -> bytes:
 def int_to_bytes(n: int, endian: str = 'big'):
     if not isinstance(n, int):
         raise ValueError("int_to_bytes: n must be an integer")
-    if not ((endian == 'big') or (endian == 'little')):
+    if endian not in ('big', 'little'):
         raise ValueError("int_to_bytes: endian must be \'big\' (default) or \'little\'")
     return n.to_bytes((n.bit_length() + 7) // 8, endian)
 
@@ -44,6 +47,7 @@ def reverse_bytes(byte_str: bytes) -> bytes:
     return bytes.fromhex(byte_str)[::-1].hex()
 
 #+end_src
+
 
 * Utility Functions
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
@@ -66,16 +70,16 @@ def get_compact_size(n: int=None) -> str:
     '''Get the compact size byte for given script.'''
     if isinstance(n, float) and n.is_integer():
         n = int(n)  # Convert integral floats to int
-    if not isinstance(n, int) or not (0 <= n and n <= MAX_SIZE):  # max get_compact_size
-        raise ValueError("get_compact_size, 0 <= n <= 0xffffffffffffffff must be an integer")
+    if not isinstance(n, int) or not (0 <= n and n <= MAX_COMPACT_SIZE):  # max get_compact_size
+        raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
 
-    if n <= 0xfc:                    # single-byte case when  size < 0xffff
+    if n < 0xfd:                    # single-byte case when  size < 0xffff
         return hex(n)[2:].zfill(2)
     elif n <= 0xffff:
-        return 'fd' + n.to_bytes(2, 'little').hex()  #TODO: handle cases where we have to encode an actual length
+        return 'fd' + n.to_bytes(2, 'little').hex()
     elif n <= 0xffffffff:
         return 'fe' + n.to_bytes(4, 'little').hex()
-    else:
+    else: # n > 0xffffffff
         return 'ff' + n.to_bytes(8, 'little').hex()
 
 def hash_sort(arr, n_buckets: int = 997):
@@ -114,6 +118,7 @@ def get_tests(test_vector_file):
 
 #+end_src
 
+
 * Tests
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
 def run_tests():
@@ -124,35 +129,44 @@ def run_tests():
     #
     assert bytes_to_hex(b'\xde\xad\xbe\xef') == 'deadbeef'
     print(f"Expected: deadbeef\nGot:\t {bytes_to_hex(b'\xde\xad\xbe\xef')}")
+
     #
     # # Test Compact Sizes
     #
     for i in range(0, 252):
-        msg = b'1' * i
-        size_byte = get_compact_size(msg)
-        if size_byte != hex(i):
+        msg = bytes(random.getrandbits(1) for _ in range(i))
+        size_byte = get_compact_size(len(msg))
+        if size_byte != f"{i:02x}" :
             print(f"Expected: {hex(i)}\tGot: {size_byte}")
 
-    msg = b'1' * 253
-    print(f"Expected: 0xfd\nGot:\t {get_compact_size(msg)}")
+    print("\nTesting get_compact_size()...\n")
 
-    msg = b'1' * 65535
-    print(f"Expected: 0xfd\nGot:\t {get_compact_size(msg)}")
+    # n out of bounds, too teeny-tiny
+    try:
+        print(f"Expected: \nGot:\t {get_compact_size(-1)}")
+    except ValueError:
+        print("Caught an out of bounds input. Good.")
 
-    msg = b'1' * 65536
-    print(f"Expected: 0xfe\nGot:\t {get_compact_size(msg)}")
+    for n, b in zip([253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
+                    ['fdfd00', 'fdffff', 'fe0000100', 'feffffffff', 'ff0000000010000000', 'ffffffffffffffffff']):
+        compact_size = get_compact_size(n)
+        assert compact_size == b
+        print(f"Expected: {b}\nGot:\t {compact_size}")
 
-    msg = b'1' * 4294967295
-    print(f"Expected: 0xfe\nGot:\t {get_compact_size(msg)}")
-
-    msg = b'1' * 4294967296
-    print(f"Expected: 0xff\nGot:\t {get_compact_size(msg)}")
+    # n out of bounds, too bookoo
+    try:
+        print(f"Expected: \nGot:\t {get_compact_size(18446744073709551616)}")
+    except ValueError:
+        print("Caught an out of bounds input. Good.")
 
 #+end_src
 
+
 * Main
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
+
 if __name__ == '__main__':
+    print("\nRunning tests for helpers.py...\n")
     run_tests()
 
 #+end_src

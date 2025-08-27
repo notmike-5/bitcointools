@@ -116,6 +116,7 @@ def run_tests():
     # TODO WIF format
 
 if __name__ == "__main__":
+    print("\nRunning tests for address.py...\n")
     if len(args := sys.argv) < 2:
         print("Generating a random address")
         get_new_address()

@@ -136,10 +136,11 @@ locktime (4-byte, little-endian): ffd30a00
 
 from typing import List
 
-from .helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
-from .hashes import hash256
+from helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
+from hashes import hash256
 
 #+end_src
+
 
 * TxIn Class
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
@@ -240,6 +241,7 @@ class TxOut:
         return b
 
 #+end_src
+
 
 * Transaction Class
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
@@ -382,6 +384,7 @@ class TaprootTransaction(SegwitTransaction):
         '''Initialize Segwit v1, TaprootTransaction'''
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
 #+end_src
+
 
 * Test Cases
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
@@ -659,6 +662,7 @@ def run_tests():
     run_test(p2tr_opchecksigadd_test)
 
 #+end_src
+
 
 * Main
 #+begin_src python :tangle ../transaction.py :results silent :session

@@ -1,7 +1,7 @@
 from typing import List
 
-from .helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
-from .hashes import hash256
+from helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
+from hashes import hash256
 
 class TxIn:
     '''Input class for Bitcoin transactions'''

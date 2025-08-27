@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
 
-python -m address
-python -m bech32
-python -m hashes
-python -m merkle
-python -m schnorr
-python -m taproot
-python -m transaction
+python helpers.py
+python address.py
+python bech32.py
+python hashes.py
+python merkle.py
+python schnorr.py
+python taproot.py
+python transaction.py

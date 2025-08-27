@@ -91,6 +91,7 @@ def get_new_address():
 
 #+end_src
 
+
 * Tests
 #+begin_src python  :tangle ../address.py :results silent :session pybtc
 
@@ -150,9 +151,12 @@ def run_tests():
 
 #+end_src
 
-* Self-Test
+*
+Main
 #+begin_src python :tangle ../address.py :results silent :session pybtc
+
 if __name__ == "__main__":
+    print("\nRunning tests for address.py...\n")
     if len(args := sys.argv) < 2:
         print("Generating a random address")
         get_new_address()

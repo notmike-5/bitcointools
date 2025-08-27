@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 import binascii
 import unittest
-from .helpers import get_tests
+from helpers import get_tests
 
 class Encoding(Enum):
     '''enum type to list supported encodings'''
