@@ -130,15 +130,14 @@ locktime (4-byte, little-endian): ffd30a00
   "blocktime": 1636868413
 }
 
+
 * Imports
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
 from typing import List
 
-# import sys
-# sys.path.append('..')
-from helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
-from hashes import hash256
+from .helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
+from .hashes import hash256
 
 #+end_src
 
