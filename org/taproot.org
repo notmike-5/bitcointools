@@ -85,14 +85,16 @@ Step 8: Validate and Broadcast
 
 Opcodes from 0x50 to 0x60 and 0x62 to 0x6F are reserved as OP_SUCCESSx
 
+
 * Imports
 #+begin_src python :tangle ../taproot.py :results silent :session pybtc
-from hashes import tagged_hash
-from helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
-from pprint import pprint
+
+from .hashes import tagged_hash
+from .helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
 import secp256k1
 
 #+end_src
+
 
 * Functions
 #+begin_src python :tangle ../taproot.py :results silent :session pybtc
@@ -201,6 +203,7 @@ def create_taproot_mast(internal_pubkey_hex, scripts):
         raise ValueError(f"Error creating Taproot MAST: {str(e)}") from e
 
 #+end_src
+
 
 * Test
 ** Test Vectors
