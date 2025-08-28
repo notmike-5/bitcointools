@@ -170,7 +170,7 @@ import sys
 
 def test_vectors() -> bool:
     all_passed = True
-    with open(os.path.join(sys.path[0], 'test-vectors.csv'), newline='') as csvfile:
+    with open(os.path.join(sys.path[0], 'bitcointools/test/schnorr_test_vectors.csv'), newline='') as csvfile:
         reader = csv.reader(csvfile)
         reader.__next__()
         for row in reader:
