@@ -9,6 +9,7 @@ import subprocess
 
 * Functions
 #+begin_src python :tangle ../hashes.py :results output silent :session pybtc
+
 def sha256(data: bytes) -> bytes:
     '''Compute the SHA-256 hash of input data'''
     assert isinstance(data, bytes)
@@ -49,7 +50,9 @@ def _get_sha256_teststr(data):
 #+begin_src python :tangle ../hashes.py :results silent :session pybtc
 
 def run_tests():
-    '''Some unit tests'''
+    '''Some unit tests of the hash functions'''
+    print("\nRunning tests for hashes.py...")
+
     # Test 1: sha256 hash of hex string ’deadbeef’
     testdata = 'deadbeef'
 
@@ -59,6 +62,11 @@ def run_tests():
     print(f"Test 1: H({testdata}) == {good_hash}")
     assert our_hash.hex() == good_hash
     print("Passed")
+
+#+end_src
+
+* Main
+#+begin_src python :tangle ../hashes.py :results silent :session pytbtc
 
 if __name__ == '__main__':
     run_tests()

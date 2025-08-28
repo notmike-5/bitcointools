@@ -650,6 +650,7 @@ def run_test(test: dict):
 
 
 def run_tests():
+    print("\nRunning transaction formation and serialization tests...")
     run_test(Sat_Hal_test)
     run_test(P2SH_test)
     run_test(Segwit_v0_test)
