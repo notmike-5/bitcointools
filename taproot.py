@@ -1,5 +1,5 @@
-from hashes import tagged_hash
-from helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
+from bitcointools.hashes import tagged_hash
+from bitcointools.helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
 import secp256k1
 
 # secp256k1 curve order (for negation: -1 ≡ order - 1 mod order)

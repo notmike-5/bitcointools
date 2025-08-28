@@ -1,7 +1,8 @@
 '''schnorr signature implementation'''
-from typing import Tuple, Optional, Any
-from hashes import sha256, tagged_hash
+
 import hashlib
+from typing import Tuple, Optional, Any
+from bitcointools.hashes import sha256, tagged_hash
 
 DEBUG = True
 

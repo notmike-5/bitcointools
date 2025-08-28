@@ -1,5 +1,5 @@
-from hashes import tagged_hash
-import helpers
+from bitcointools.hashes import tagged_hash
+import bitcointools.helpers
 
 class Leaf():
     def __init__(self, ver: int, script: str):

@@ -1,9 +1,11 @@
 * Imports
 #+begin_src python :tangle ../merkle.py :results silent :session pybtc
-from hashes import tagged_hash
-import helpers
+
+from bitcointools.hashes import tagged_hash
+import bitcointools.helpers
 
 #+end_src
+
 
 * Classes
 #+begin_src python :tangle ../merkle.py :results silent :session pybtc
@@ -16,6 +18,7 @@ class Leaf():
         print(f"TapLeaf Version: {self.ver}")
         print(f"Script: {script}")
 #+end_src
+
 
 * Functions
 #+begin_src python :tangle ../merkle.py :results silent :session pybtc

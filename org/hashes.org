@@ -1,9 +1,11 @@
 * Imports
 #+begin_src python :tangle ../hashes.py :results silent :session pybtc
+
 import hashlib
 import subprocess
 
 #+end_src
+
 
 * Functions
 #+begin_src python :tangle ../hashes.py :results output silent :session pybtc
@@ -41,6 +43,7 @@ def _get_sha256_teststr(data):
     return f"xxd -r -p <<< {data} | sha256sum | tr -d '  -'"
 
 #+end_src
+
 
 * Tests
 #+begin_src python :tangle ../hashes.py :results silent :session pybtc

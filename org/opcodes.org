@@ -151,5 +151,6 @@ OP_NOP10 = 0xb9
 
 *
 
+
 * Functions
 # TODO Functions that provide some scripts for testing and common scripts

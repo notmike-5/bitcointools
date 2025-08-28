@@ -1,7 +1,7 @@
 * Imports
 #+begin_src python :tangle ../segwit.py :results silent :session pybtc
 
-from .helpers import parse_varint
+from bitcointools.helpers import parse_varint
 
 #+end_src
 

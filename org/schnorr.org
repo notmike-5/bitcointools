@@ -1,12 +1,15 @@
 * Imports
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
 '''schnorr signature implementation'''
-from typing import Tuple, Optional, Any
-from hashes import sha256, tagged_hash
+
 import hashlib
+from typing import Tuple, Optional, Any
+from bitcointools.hashes import sha256, tagged_hash
 
 DEBUG = True
+
 #+end_src
+
 
 * Utility Types/Functions
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
@@ -26,6 +29,7 @@ def xor_bytes(b0: bytes, b1: bytes) -> bytes:
 
 #+end_src
 
+
 * Parameters
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
 # Note: for secp256k1 the equation is y^2 = x^3 + ax +b  (mod p)
@@ -44,6 +48,7 @@ G = (0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
 
 #+end_src
 
+
 * Key Generation
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
 def pubkey_gen(sk: bytes) -> bytes:
@@ -57,6 +62,7 @@ def pubkey_gen(sk: bytes) -> bytes:
     return bytes_from_point(P)
 
 #+end_src
+
 
 * Point Operations
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
@@ -117,6 +123,7 @@ def point_mul(P: Optional[Point], n: int) -> Optional[Point]:
 
 #+end_src
 
+
 * Schnorr Sigs
 ** Sign
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent
@@ -167,6 +174,7 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     return True
 
 #+end_src
+
 
 * Debug/Test Code
 ** Debug
@@ -256,6 +264,7 @@ def test_vectors() -> bool:
     return all_passed
 
 #+end_src
+
 
 * Main(): run the test vectors
 #+begin_src python :tangle ../schnorr.py :session pybtc :results silent

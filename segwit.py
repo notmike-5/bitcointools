@@ -1,4 +1,4 @@
-from .helpers import parse_varint
+from bitcointools.helpers import parse_varint
 
 def sanitize_segwit(tx_hex: int, debug: bool = False) -> int:
     '''Remove the offending pieces of a segwit transaction'''

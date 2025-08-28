@@ -1,13 +1,12 @@
 #+begin_src python :tangle yes :session pybtc :results silent
+
 from pprint import pprint
-import sys
 
 # local imports
-sys.path.append('..')
-from hashes import hash256
-from rpc import make_rpc_call
-from helpers import parse_varint, reverse_bytes
-from segwit import sanitize_segwit
+from bitcointools.hashes import hash256
+from bitcointools.helpers import parse_varint, reverse_bytes
+from bitcointools.rpc import make_rpc_call
+from bitcointools.segwit import sanitize_segwit
 
 def get_block(blockhash, verbosity=1):
     return make_rpc_call("getblock", [blockhash, verbosity])

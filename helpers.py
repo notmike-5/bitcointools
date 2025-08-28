@@ -121,31 +121,18 @@ def run_tests():
             print(f"Expected: {hex(i)}\tGot: {size_byte}")
 
     print("\nTesting get_compact_size()...\n")
+
     # n out of bounds, too teeny-tiny
     try:
         print(f"Expected: \nGot:\t {get_compact_size(-1)}")
     except ValueError:
         print("Caught an out of bounds input. Good.")
 
-    # n in [253, 65535] lower bound
-    print(f"Expected: fdfd00\nGot:\t {get_compact_size(253)}")
-
-    # n in [253, 65535] upper bound
-    print(f"Expected: fdffff\nGot:\t {get_compact_size(65535)}")
-
-    # n in [65536, 4294967295] lower bound
-    print(f"Expected: fe00000100\nGot:\t {get_compact_size(65536)}")
-
-    # n in [65536, 4294967295] upper bound
-    compact_size = get_compact_size(4294967295)
-    assert compact_size == "feffffffff"
-    print(f"Expected: feffffffff\nGot:\t {compact_size}")
-
-    # n in [4294967296, 18446744073709551615] lower boudn
-    print(f"Expected: ff0000000010000000\nGot:\t {get_compact_size(4294967296)}")
-
-    # n in [4294967296, 18446744073709551615] lower bound
-    print(f"Expected: ffffffffffffffffff\nGot:\t {get_compact_size(18446744073709551615)}")
+    for n, b in zip([253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
+                    ['fdfd00', 'fdffff', 'fe0000100', 'feffffffff', 'ff0000000010000000', 'ffffffffffffffffff']):
+        compact_size = get_compact_size(n)
+        assert compact_size == b
+        print(f"Expected: {b}\nGot:\t {compact_size}")
 
     # n out of bounds, too bookoo
     try:

@@ -5,9 +5,9 @@ WARNING: Do not use this script to generate anything, especially not any bitcoin
 Use is 100% at your own risk, and I assume no liability for anything that happens.
 '''
 
-from base58 import base58check_encode
-from hashes import sha256, hash256, ripemd160, hash160
-import params
+from bitcointools.base58 import base58check_encode
+from bitcointools.hashes import sha256, hash256, ripemd160, hash160
+import bitcointools.params
 import secp256k1
 import sys
 

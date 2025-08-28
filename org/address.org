@@ -23,9 +23,9 @@ Use is 100% at your own risk, and I assume no liability for anything that happen
 
 * Imports
 #+begin_src python :tangle ../address.py :results silent :session pybtc
-from base58 import base58check_encode
-from hashes import sha256, hash256, ripemd160, hash160
-import params
+from bitcointools.base58 import base58check_encode
+from bitcointools.hashes import sha256, hash256, ripemd160, hash160
+import bitcointools.params
 import secp256k1
 import sys
 

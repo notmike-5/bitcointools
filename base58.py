@@ -1,5 +1,5 @@
+from bitcointools.hashes import hash160, hash256
 import secp256k1
-from hashes import hash160, hash256
 
 # Base58 character set
 ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
