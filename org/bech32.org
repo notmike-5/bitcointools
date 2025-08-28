@@ -345,7 +345,7 @@ if __name__ == "__main__":
 
     # BIP-0341 Segwit v1 ("Taproot") / bech32 Encoding Tests
     # from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
-    V = get_tests("bitcointools/test/BIP341_wallet_test_vectors.json")
+    V = get_tests("bitcointools/test/bip_341_wallet_test_vectors.json")
 
     print("\nBIP-0341 Segwit v1 (Taproot) / bech32 Encoding Tests\n", '-' * 50)
     for v in V['scriptPubKey']:
