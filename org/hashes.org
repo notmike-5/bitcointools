@@ -51,7 +51,7 @@ def _get_sha256_teststr(data):
 
 def run_tests():
     '''Some unit tests of the hash functions'''
-    print("\nRunning tests for hashes.py...")
+    print("\nRunning hash function tests...\n")
 
     # Test 1: sha256 hash of hex string ’deadbeef’
     testdata = 'deadbeef'
