@@ -129,7 +129,7 @@ def run_tests():
         print("Caught an out of bounds input. Good.")
 
     for n, b in zip([253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
-                    ['fdfd00', 'fdffff', 'fe00000100', 'feffffffff', 'ff0000000010000000', 'ffffffffffffffffff']):
+                    ['fdfd00', 'fdffff', 'fe00000100', 'feffffffff', 'ff0000000001000000', 'ffffffffffffffffff']):
         compact_size = get_compact_size(n)
         assert compact_size == b
         print(f"Expected: {b}\nGot:\t {compact_size}")
