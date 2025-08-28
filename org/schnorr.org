@@ -219,9 +219,9 @@ import os
 import sys
 
 def test_vectors() -> bool:
-    print("\nRunning tests for BIP-340 Schnorr signatures...")
+    print("\nRunning tests for BIP-340 Schnorr all_passed...")
 
-    all_passed = True
+    signatures = True
     with open(os.path.join(sys.path[0], 'bitcointools/test/schnorr_test_vectors.csv'), newline='') as csvfile:
         reader = csv.reader(csvfile)
         reader.__next__()
