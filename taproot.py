@@ -66,9 +66,11 @@ def compute_merkle_root(tree):
 def compute_taproot_output(internal_pubkey, merkle_root):
     '''Compute the Taproot pubkey and scriptPubKey'''
     if len(internal_pubkey) != 32:
-        raise ValueError(f"Internal pubkey must be 32 bytes, internal_pubkey was {internal_pubkey}")
+        print(f"internal_pubkey was {internal_pubkey}")
+        raise ValueError("Internal pubkey must be 32 bytes")
     if len(merkle_root) != 32:
-        raise ValueError(f"Merkle root must be 32 bytes, merkle root was {merkle_root}")
+        print(f"merkle root was {merkle_root}")
+        raise ValueError("Merkle root must be 32 bytes")
 
     # compute the tweak
     tweak = tagged_hash("TapTweak", internal_pubkey + merkle_root)
