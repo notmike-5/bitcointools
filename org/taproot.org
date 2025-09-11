@@ -188,11 +188,11 @@ def compute_taproot_output(internal_pubkey, merkle_root):
     return tweak.hex(), xonly_tweaked_pubkey.hex(), script_pubkey.hex()
 
 # TODO: test coverage on create_taproot_mast
-def create_taproot_mast(internal_pubkey_hex, scripts):
+def create_taproot_mast(internal_pubkey_hex, script_tree):
     '''Create a Taproot MAST from scripts and internal pubkey'''
     try:
         internal_pubkey = hex_to_bytes(internal_pubkey_hex)
-        merkle_root= compute_merkle_root(scripts)
+        merkle_root = hex_to_bytes(compute_merkle_root(script_tree))
         tweaked_pubkey, script_pubkey = compute_taproot_output(internal_pubkey, merkle_root)
         return {
             "merkle_root": bytes_to_hex(merkle_root),
