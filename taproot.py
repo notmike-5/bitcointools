@@ -95,12 +95,12 @@ def create_taproot_mast(internal_pubkey_hex, script_tree):
     '''Create a Taproot MAST from scripts and internal pubkey'''
     try:
         internal_pubkey = hex_to_bytes(internal_pubkey_hex)
-        merkle_root = hex_to_bytes(compute_merkle_root(script_tree))
-        tweaked_pubkey, script_pubkey = compute_taproot_output(internal_pubkey, merkle_root)
+        taptree_root = hex_to_bytes(compute_merkle_root(script_tree))
+        tweak, tweaked_pubkey, script_pubkey = compute_taproot_output(internal_pubkey, taptree_root)
         return {
-            "merkle_root": bytes_to_hex(merkle_root),
-            "tweaked_pubkey": bytes_to_hex(tweaked_pubkey),
-            "script_pubkey": bytes_to_hex(script_pubkey)
+            "taptree_root": taptree_root.hex(),
+            "tweaked_pubkey": tweaked_pubkey,
+            "script_pubkey": script_pubkey
         }
     except Exception as e:
         raise ValueError(f"Error creating Taproot MAST: {str(e)}") from e
