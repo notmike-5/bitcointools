@@ -8,6 +8,8 @@ class TxIn:
     def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, segwit: bool=False, witness: List[int]=None, sequence: int=0xffffffff):
         '''Initialize the Input'''
 
+        self.segwit = segwit
+
         # Transaction ID of the prev output we want to spend
         if not txid:
             raise ValueError("You must provide a hex string txid for each input")
@@ -23,7 +25,7 @@ class TxIn:
         self.vout = vout
 
         # ScriptSig for prev output
-        if segwit:
+        if self.segwit:
             self.scriptSig = '00'  # SegWit has zero byte placeholder
             if not witness:
                 raise ValueError("A witness is required for every SegWit input")
@@ -53,6 +55,28 @@ class TxIn:
             b += hex_to_bytes(self.scriptSig)
         b += self.sequence.to_bytes(4, 'little')
 
+        return b
+
+class SegwitTxIn(TxIn):
+    '''Segregated Witness (SegWit) transaction class, moves scriptSig to witness area'''
+
+    def __init__(self, txid: str=None, vout: int=None, witness: List[int]=None, sequence: int=0xffffffff):
+        '''Initialize the transaction'''
+        super().__init__(txid=txid, vout=vout, scriptSig='00', sequence=sequence)
+
+        self.segwit = True
+
+        if not witness:
+            raise ValueError("a witness is required for every SegWit input")
+        self.witness = witness
+        self.stack_size = get_compact_size(len(witness))
+
+    def serialize(self):
+        '''return the serialized blob for a segwit input'''
+        b = hex_to_bytes(self.txid)[::-1]
+        b += self.vout.to_bytes(4, 'little')
+        b += b'\x00'  # no scriptSig
+        b += self.sequence.to_bytes(4, 'little')
         return b
 
 class TxOut:

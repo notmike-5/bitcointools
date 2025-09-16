@@ -145,51 +145,12 @@ from bitcointools.hashes import hash256
 * TxIn Class
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
-# class TxIn:
-#     '''Input class for Bitcoin transactions'''
-#     def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, sequence: int=0xffffffff):
-#         '''Initialize the Input'''
-
-#         # Transaction ID of the prev output we want to spend
-#         if not txid:
-#             raise ValueError("You must provide a hex string txid for each input")
-#         if not (isinstance(int(txid, 16), int) and len(txid) == 64):
-#             raise ValueError("txid must be a 32-byte hex string for each input")
-#         self.txid = txid
-
-#         # Vout we want to spend
-#         if not isinstance(vout, int):
-#             raise ValueError("You must provide an integer vout for each input")
-#         if vout.bit_length() // 8 > 4:
-#             raise ValueError("vout must be no larger than 4 bytes for each input")
-#         self.vout = vout
-
-#         # ScriptSig for prev output
-#         if not scriptSig:
-#             raise ValueError("You must provide a hex string scriptSig for each input")
-#         # if not int(scriptSig, 16):
-#         #     raise ValueError("scriptSig must be a hex string")
-#         self.scriptSig_size = get_compact_size(len(scriptSig) // 2)  # size of the scriptSig in bytes
-#         self.scriptSig = scriptSig  # signature
-
-#         # Sequence for e.g. replace-by-fee
-#         if not (0x0 <= sequence and sequence <= 0xffffffff):
-#             raise ValueError("Sequence must be an integer between 0 and 0xffffffff")
-#         self.sequence = sequence
-
-#     def serialize(self) -> bytes:
-#         '''return the serialize data for this input'''
-#         b = hex_to_bytes(self.txid)[::-1]
-#         b += self.vout.to_bytes(4, 'little')
-#         b += hex_to_bytes(self.scriptSig_size)
-#         b += hex_to_bytes(self.scriptSig)
-#         b += self.sequence.to_bytes(4, 'little')
-#         return b
-
 class TxIn:
     '''Input class for Bitcoin transactions'''
     def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, segwit: bool=False, witness: List[int]=None, sequence: int=0xffffffff):
         '''Initialize the Input'''
+
+        self.segwit = segwit
 
         # Transaction ID of the prev output we want to spend
         if not txid:
@@ -206,7 +167,7 @@ class TxIn:
         self.vout = vout
 
         # ScriptSig for prev output
-        if segwit:
+        if self.segwit:
             self.scriptSig = '00'  # SegWit has zero byte placeholder
             if not witness:
                 raise ValueError("A witness is required for every SegWit input")
