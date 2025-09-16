@@ -5,7 +5,7 @@ from bitcointools.hashes import hash256
 
 class TxIn:
     '''Input class for Bitcoin transactions'''
-    def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, sequence: int=0xffffffff):
+    def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, segwit: bool=False, witness: List[int]=None, sequence: int=0xffffffff):
         '''Initialize the Input'''
 
         # Transaction ID of the prev output we want to spend
@@ -23,12 +23,19 @@ class TxIn:
         self.vout = vout
 
         # ScriptSig for prev output
-        if not scriptSig:
-            raise ValueError("You must provide a hex string scriptSig for each input")
-        # if not int(scriptSig, 16):
-        #     raise ValueError("scriptSig must be a hex string")
-        self.scriptSig_size = get_compact_size(len(scriptSig) // 2)  # size of the scriptSig in bytes
-        self.scriptSig = scriptSig  # signature
+        if segwit:
+            self.scriptSig = '00'  # SegWit has zero byte placeholder
+            if not witness:
+                raise ValueError("A witness is required for every SegWit input")
+            self.witness = witness
+            self.stack_size = get_compact_size(len(self.witness))
+        else:
+            if not scriptSig:
+                raise ValueError("You must provide a hex string scriptSig for each legacy input")
+
+            self.scriptSig = scriptSig  # just provide signature for legacy bitcoin TXs
+
+        self.scriptSig_size = get_compact_size(len(self.scriptSig) // 2)  # size of the scriptSig in bytes
 
         # Sequence for e.g. replace-by-fee
         if not (0x0 <= sequence and sequence <= 0xffffffff):
@@ -39,31 +46,13 @@ class TxIn:
         '''return the serialize data for this input'''
         b = hex_to_bytes(self.txid)[::-1]
         b += self.vout.to_bytes(4, 'little')
-        b += hex_to_bytes(self.scriptSig_size)
-        b += hex_to_bytes(self.scriptSig)
+        if self.segwit:
+            b += b'\x00'  # no scriptSig
+        else:
+            b += hex_to_bytes(self.scriptSig_size)
+            b += hex_to_bytes(self.scriptSig)
         b += self.sequence.to_bytes(4, 'little')
-        return b
 
-class SegwitTxIn(TxIn):
-    '''Segregated Witness (SegWit) transaction class, moves scriptSig to witness area'''
-
-    def __init__(self, txid: str=None, vout: int=None, witness: List[int]=None, sequence: int=0xffffffff):
-        '''Initialize the transaction'''
-        super().__init__(txid=txid, vout=vout, scriptSig='00', sequence=sequence)
-
-        self.segwit = True
-
-        if not witness:
-            raise ValueError("a witness is required for every SegWit input")
-        self.witness = witness
-        self.stack_size = get_compact_size(len(witness))
-
-    def serialize(self):
-        '''return the serialized blob for a segwit input'''
-        b = hex_to_bytes(self.txid)[::-1]
-        b += self.vout.to_bytes(4, 'little')
-        b += b'\x00'  # no scriptSig
-        b += self.sequence.to_bytes(4, 'little')
         return b
 
 class TxOut:
@@ -443,7 +432,7 @@ def run_test(test: dict):
     for i in test['Vin']:
         if i['segwit']:
             inputs.append(
-                SegwitTxIn(txid=i['txid'], vout=i['vout'], witness=i['witness'], sequence=i['sequence']))
+                TxIn(segwit=True, txid=i['txid'], vout=i['vout'], witness=i['witness'], sequence=i['sequence']))
             isSegwit = True
         else:
             inputs.append(
