@@ -51,6 +51,8 @@ def reverse_bytes(byte_str: bytes) -> bytes:
 
 * Utility Functions
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
+
+# TO-DO: deprecated, need to remove from segwit.py
 def parse_varint(tx: bytes, cur: int) -> (int, int):
     '''Parse a variable-length integer from the transaction data
     and move cursor to appropriate position'''
@@ -65,7 +67,24 @@ def parse_varint(tx: bytes, cur: int) -> (int, int):
     # 0xff (rare)
     return int.from_bytes(tx[cur+1:cur+9], 'little'), cur + 9
 
-# TODO: for tx inputs we would want the count of them
+def parse_compact_size(tx: str) -> (int, int):
+    '''Parse a compact size from a transaction
+    NOTE: Here we assume the compact size occurs at start of str.
+    We parse and return the compact size and shorter transaction'''
+
+    size_byte = int(tx[:2], 16)
+
+    if size_byte not in list(range(0x0, 0x100)):
+        raise ValueError(f'parse_compact_size called on invalid byte {tx[:2]}')
+    if size_byte < 0xfd:  # return the byte
+        return tx[:2], int.from_bytes(bytes.fromhex(tx[:2]), 'little')
+    if size_byte == 0xfd:  # return 2 byte, little-endian
+        return tx[6:], int.from_bytes(bytes.fromhex(tx[2:6]), 'little')
+    if size_byte == 0xfe:  # return 4 byte, little-endian
+        return tx[10:], int.from_bytes(bytes.fromhex(tx[2:10]), 'little')
+    # 0xff (rare) - return 8 byte, little-endian
+    return tx[18:], int.from_bytes(bytes.fromhex(tx[2:18]), 'little')
+
 def get_compact_size(n: int=None) -> str:
     '''Get the compact size byte for given script.'''
     if isinstance(n, float) and n.is_integer():
@@ -73,7 +92,7 @@ def get_compact_size(n: int=None) -> str:
     if not isinstance(n, int) or not (0 <= n and n <= MAX_COMPACT_SIZE):  # max get_compact_size
         raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
 
-    if n < 0xfd:                    # single-byte case when  size < 0xffff
+    if n < 0xfd:  # single-byte case when  size < 0xffff
         return hex(n)[2:].zfill(2)
     elif n <= 0xffff:
         return 'fd' + n.to_bytes(2, 'little').hex()
