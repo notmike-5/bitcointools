@@ -1,5 +1,4 @@
-from hashlib import sha256
-from bitcointools.hashes import tagged_hash
+from bitcointools.hashes import sha256, tagged_hash
 from bitcointools.transaction import OutPoint, Transaction, TxOut
 
 # SigHash Types
