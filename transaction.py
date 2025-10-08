@@ -1,5 +1,5 @@
-from helpers import get_compact_size, hex_to_ascii, hex_to_bytes
-from hashes import hash256
+from bitcointools.helpers import get_compact_size, hex_to_ascii, hex_to_bytes
+from bitcointools.hashes import hash256
 
 class OutPoint:
     '''OutPoint class encapsulates txid, vout (or index).

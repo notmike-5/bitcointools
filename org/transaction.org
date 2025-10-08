@@ -133,8 +133,8 @@ locktime (4-byte, little-endian): ffd30a00
 * Imports
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
-from helpers import get_compact_size, hex_to_ascii, hex_to_bytes
-from hashes import hash256
+from bitcointools.helpers import get_compact_size, hex_to_ascii, hex_to_bytes
+from bitcointools.hashes import hash256
 
 #+end_src
 
