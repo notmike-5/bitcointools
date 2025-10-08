@@ -624,7 +624,7 @@ class Transaction:
 class P2TSHTransaction(Transaction):
     '''TaprootTransaction class'''
 
-    def __init__(self, version: int=0x02, vin: list[TxIn]=None, vout: list[TxOut]=None, iPubkey: int=None, MAST: List[int]=None, locktime: int=0):
+    def __init__(self, version: int=0x02, vin: list[TxIn]=None, vout: list[TxOut]=None, iPubkey: int=None, MAST: list[int]=None, locktime: int=0):
         '''Initialize Segwit v1, TaprootTransaction'''
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
 #+end_src
