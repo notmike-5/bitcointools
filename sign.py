@@ -115,6 +115,6 @@ class SigningContext:
         if message_ext:
             message += message_ext
 
-        return tagged_hash(b"TapSigHash", message)
+        return tagged_hash("TapSigHash", message)
 
 
