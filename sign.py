@@ -1,6 +1,6 @@
 from hashlib import sha256
 from bitcointools.hashes import tagged_hash
-from bitcointools.transaction import Transaction
+from bitcointools.transaction import Outpoint, Transaction
 
 # SigHash Types
 SIGHASH_ALL = 0x1  # sign all inputs and outputs
