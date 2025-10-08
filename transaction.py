@@ -1,202 +1,390 @@
-from typing import List
+from helpers import get_compact_size, hex_to_ascii, hex_to_bytes
+from hashes import hash256
 
-from bitcointools.helpers import bytes_to_hex, get_compact_size, hex_to_ascii, hex_to_bytes, reverse_bytes
-from bitcointools.hashes import hash256
+class OutPoint:
+    '''OutPoint class encapsulates txid, vout (or index).
+
+    ...and potentially (in the future) amount and scriptPubKey'''
+
+    def __init__(self,
+                 txid: str|bytes = b'\x00' * 32,
+                 vout: int = 0xffffffff) -> None:
+        '''Create an OutPoint object, defaults to a generic coinbase'''
+
+        # Transaction ID
+        # Note: For a coinbase output this is by standard 32-bytes of 0.
+        match txid:
+            # human-friendly hex strings
+            case str():
+                if len(txid) != 64 or not isinstance(int(txid, 16), int):
+                    raise ValueError("txid must be a 32-byte hex string for each OutPoint")
+                self.txid = hex_to_bytes(txid)
+            # de-facto / preferred byte strings
+            case bytes():
+                self.txid = txid
+            case _:
+                raise ValueError("txid must be a 32-byte hex string for each OutPoint")
+
+        # vout (index)
+        # Note: For a coinbase output this is by standard 0xffffffff.
+        if not isinstance(vout, int) or vout < 0:
+            raise ValueError("You must provide a positive integer vout for each OutPoint")
+        if vout.bit_length() > 32:
+            raise ValueError("vout must be no larger than 4-bytes for each OutPoint")
+        self.vout = vout
+
+        # coinbase
+        self.is_coinbase = (self.txid == b'\x00' * 32) and (self.vout == 0xffffffff)
+
+        # sanity check
+        self.assert_valid()
+
+    @property
+    def hash(self) -> int:
+        '''Return the hash int for compatibility with COutPoint.'''
+        return int.from_bytes(self.txid, "big", signed=False)
+
+    @property
+    def n(self) -> int:
+        '''Return the n int for compatibility with COutPoint.'''
+        return self.vout
+
+    def is_coinbase(self) -> bool:
+        return self.is_coinbase
+
+    def assert_valid(self) -> None:
+        '''Validate some essential basic properties'''
+        if len(self.txid) != 32:
+            raise ValueError(f"txid must be 32-bytes and {self.txid} is not")
+        if not 0 <= self.vout <= 0xffffffff:
+            raise ValueError(f"vout must be an integer 0 <= vout <= 0xffffffff, and {self.vout} is not")
+        if (self.txid == b'\x00' * 32) ^ (self.vout == 0xffffffff):
+            raise ValueError(f"({self.txid}, {self.vout}) is an invalid OutPoint")
+
+    def serialize(self) -> bytes:
+        '''Return the serialized bytes for:
+
+        txid (32-bytes, little-endian) || vout (4-byte, little-endian)'''
+
+        self.assert_valid()
+
+        b = self.txid[::-1]                                           # txid, 32-byte
+        b += self.vout.to_bytes(4, byteorder='little', signed=False)  # vout, 8-byte, little-endian
+
+        return b
 
 class TxIn:
     '''Input class for Bitcoin transactions'''
-    def __init__(self, txid: str=None, vout: int=None, scriptSig: str=None, segwit: bool=False, witness: List[int]=None, sequence: int=0xffffffff):
+
+    def __init__(self,
+                 prevout: OutPoint = OutPoint(),
+                 scriptSig: str|bytes = None,
+                 witness: list[int] = None,
+                 sequence: int = 0xffffffff) -> None:
         '''Initialize the Input'''
 
-        self.segwit = segwit
+        # prevout
+        self.prevout = prevout
 
-        # Transaction ID of the prev output we want to spend
-        if not txid:
-            raise ValueError("You must provide a hex string txid for each input")
-        if not (isinstance(int(txid, 16), int) and len(txid) == 64):
-            raise ValueError("txid must be a 32-byte hex string for each input")
-        self.txid = txid
+        # SegWit
+        self.segwit = bool(witness)
 
-        # Vout we want to spend
-        if not isinstance(vout, int):
-            raise ValueError("You must provide an integer vout for each input")
-        if vout.bit_length() // 8 > 4:
-            raise ValueError("vout must be no larger than 4 bytes for each input")
-        self.vout = vout
-
-        # ScriptSig for prev output
+        # ScriptSig for prevout
         if self.segwit:
-            self.scriptSig = '00'  # SegWit has zero byte placeholder
+            self.scriptSig = b'\x00'  # SegWit has zero byte placeholder
             if not witness:
                 raise ValueError("A witness is required for every SegWit input")
             self.witness = witness
             self.stack_size = get_compact_size(len(self.witness))
         else:
-            if not scriptSig:
-                raise ValueError("You must provide a hex string scriptSig for each legacy input")
+            self.witness = None
+            match scriptSig:
+                case str():
+                    if not isinstance(int(scriptSig, 16), int):
+                        raise ValueError("You must provide a scriptSig for each legacy input.")
+                    self.scriptSig = hex_to_bytes(scriptSig)
+                case bytes():
+                    self.scriptSig = scriptSig
+                case _:
+                    raise ValueError("You must provide a scriptSig for each legacy input.")
 
-            self.scriptSig = scriptSig  # just provide signature for legacy bitcoin TXs
+        self.scriptSig_size = get_compact_size(len(self.scriptSig))  # size of scriptSig in bytes
 
-        self.scriptSig_size = get_compact_size(len(self.scriptSig) // 2)  # size of the scriptSig in bytes
-
-        # Sequence for e.g. replace-by-fee
-        if not (0x0 <= sequence and sequence <= 0xffffffff):
+        # Sequence for e.g. nLocktime or replace-by-fee
+        if not (0x0 <= sequence <= 0xffffffff):
             raise ValueError("Sequence must be an integer between 0 and 0xffffffff")
         self.sequence = sequence
 
+        # sanity check
+        self.assert_valid()
+
+    @property
+    def outpoint(self) -> OutPoint:
+        '''Return the prevout OutPoint for compatibility with CTxIn.'''
+        return self.prevout
+
+    #@property
+    def scriptSig(self) -> bytes:
+        '''Return the scriptSig bytes for compatibility with CTxIn.'''
+        return self.scriptSig
+
+    @property
+    def nSequence(self) -> int:
+        '''Return the nSequence int for compatibility with CTxIn.'''
+        return self.sequence
+
+    def is_segwit(self) -> bool:
+        return self.segwit
+
+    def is_coinbase(self) -> bool:
+        return self.prevout.is_coinbase()
+
+    def assert_valid(self) -> None:
+        '''Validate some essential properties'''
+        self.prevout.assert_valid()
+
+        # TO-DO: check scriptSig
+
+        if not 0 <= self.sequence <= 0xffffffff:
+            raise ValueError(f"invalid sequence: {self.sequence}")
+
+        # TO-DO: handle witness classes and validity checking
+        # if self.witness:
+        #     self.witness.assert_valid()
+
     def serialize(self) -> bytes:
-        '''return the serialize data for this input'''
-        b = hex_to_bytes(self.txid)[::-1]
-        b += self.vout.to_bytes(4, 'little')
+        '''Return the serialized data for this input'''
+        self.assert_valid()
+
+        b = self.prevout.serialize()                                       # (txid, vout)
         if self.segwit:
-            b += b'\x00'  # no scriptSig
+            b += b'\x00'  # no scriptSig, length 0
         else:
-            b += hex_to_bytes(self.scriptSig_size)
-            b += hex_to_bytes(self.scriptSig)
-        b += self.sequence.to_bytes(4, 'little')
+            b += hex_to_bytes(self.scriptSig_size)                         # scriptSig size, varint
+            b += self.scriptSig                                            # scriptSig, raw bytes
+        b += self.sequence.to_bytes(4, byteorder='little', signed=False)   # sequence, 4-byte little-endian
 
-        return b
-
-class SegwitTxIn(TxIn):
-    '''Segregated Witness (SegWit) transaction class, moves scriptSig to witness area'''
-
-    def __init__(self, txid: str=None, vout: int=None, witness: List[int]=None, sequence: int=0xffffffff):
-        '''Initialize the transaction'''
-        super().__init__(txid=txid, vout=vout, scriptSig='00', sequence=sequence)
-
-        self.segwit = True
-
-        if not witness:
-            raise ValueError("a witness is required for every SegWit input")
-        self.witness = witness
-        self.stack_size = get_compact_size(len(witness))
-
-    def serialize(self):
-        '''return the serialized blob for a segwit input'''
-        b = hex_to_bytes(self.txid)[::-1]
-        b += self.vout.to_bytes(4, 'little')
-        b += b'\x00'  # no scriptSig
-        b += self.sequence.to_bytes(4, 'little')
         return b
 
 class TxOut:
     '''Output class for Bitcoin transactions'''
-    def __init__(self, amount: int=None, scriptPubKey: str=None):
-        # if not amount:
-        #     raise ValueError("amount must be an integer num of satoshis you wish to spend")
-        if not (0 <= amount and amount < 2100000000000000):
-            raise ValueError("invalid amount, 0 < amount < 2100000000000000")
-        self.amount = amount  # satoshis going to this output as an int
 
-        # scriptPubKey for output
-        if not scriptPubKey:
-            raise ValueError("You must provide a scriptPubKey for every output")
-        self.scriptPubKey_size = get_compact_size(len(scriptPubKey) // 2)
-        self.scriptPubKey = scriptPubKey
+    def __init__(self,
+                 amount: int = None,
+                 scriptPubkey: str|bytes = None) -> None:
+        # nValue
+        if amount is None:
+            raise ValueError("amount must be an integer num of satoshis")
+        if not (0 <= amount < 2100000000000000):
+            raise ValueError("invalid amount, 0 <= amount < 2100000000000000")
+        self.amount = amount  # satoshis going to this output
+
+        # scriptPubKey
+        match scriptPubkey:
+            case str():
+                if not isinstance(int(scriptPubkey, 16), int):
+                    raise ValueError("You must provide a valid scriptPubkey for every output")
+                self.scriptPubkey = hex_to_bytes(scriptPubkey)
+            case bytes():
+                self.scriptPubkey = scriptPubkey
+            case _:
+                raise ValueError("You must provide a valid scriptPubkey for every output")
+
+        self.scriptPubkey_size = get_compact_size(len(self.scriptPubkey))
+
+        self.assert_valid()
+
+    @property
+    def nValue(self) -> int:
+        '''Return the nValue int for compatibility with CTxOut.'''
+        return self.amount
+
+    @property
+    def scriptPubKey(self) -> bytes:
+        '''Return the scriptPubKey bytes for compatibility with CTxOut.'''
+        return self.scriptPubkey
+
+    def assert_valid(self) -> None:
+        '''Validate some essential true festures'''
+        assert isinstance(self.amount, int)
+        assert 0 <= self.amount <= 2100000000000000
 
     def serialize(self) -> bytes:
         '''return the serialized data for this output'''
-        b = self.amount.to_bytes(8, 'little')
-        b += hex_to_bytes(self.scriptPubKey_size)
-        b += hex_to_bytes(self.scriptPubKey)
+        self.assert_valid()
+
+        b = self.amount.to_bytes(8, byteorder='little', signed=False)  # amount, 8-byte little-endian
+        b += hex_to_bytes(self.scriptPubkey_size)                      # scriptPubkey size, varint
+        b += self.scriptPubKey                                         # scriptPubkey, raw bytes
+
         return b
 
 class Transaction:
-    '''Base class for (Legacy) Bitcoin P2PK/P2PKH transactions'''
+    '''Base class for Bitcoin transactions'''
 
-    def __init__(self, inputs: List[TxIn]=None, outputs: List[TxOut]=None, locktime: int=0):
+    def __init__(self,
+                 version: int = 1,
+                 inputs: List[TxIn] = None,
+                 outputs: List[TxOut] = None,
+                 locktime: int = 0) -> None:
         '''Initialize transaction'''
 
-        self.version = 0x01.to_bytes(4, 'little')
+        # nVersion
+        if not (isinstance(version, int) and (0 < version <= 3)):
+            raise ValueError("version must be in {0x1 (legacy), 0x2 (SegWit), 0x3 (TRUC)}")
+        self.version = version
 
-        # TX Inputs
+        # SegWit
+        self.segwit = any(i.is_segwit() for i in inputs)
+
+        if self.segwit:
+            self.marker = b'\x00'  # must be 0x00
+            self.flag = b'\x01'    # must be flag >= 0x01. subject to future protocol changes.
+
+        # vin - tx inputs
         if not inputs:
             raise ValueError("You must provide a list of valid Tx Inputs that you wish to spend.")
-        self.input_cnt = get_compact_size(len(inputs))
+        for i in inputs:
+            i.assert_valid()
         self.inputs = inputs
 
-        # TX Outputs
+        self.input_cnt = get_compact_size(len(inputs))
+
+        # vout - tx outputs
         if not outputs:
             raise ValueError("You must provide a list of valid Tx Outputs that you wish to send to.")
+        for o in outputs:
+            o.assert_valid()
         self.outputs = outputs
+
         self.output_cnt = get_compact_size(len(outputs))
 
-        if not (0 <= locktime and locktime <= 0xffffffff):
-            raise ValueError("locktime must be an integer s.t. 0 <= locktime <= 0xffffffff")
+        # nLocktime
+        if not (0 <= locktime <= 0xffffffff):
+            raise ValueError("locktime must be a positive integer s.t. 0 <= locktime <= 0xffffffff")
         self.locktime = locktime
+
+        # sanity check
+        self.assert_valid()
+
+    @property
+    def nVersion(self) -> int:
+        '''Return the nVersion int for compatibility with CTransaction.'''
+        return self.version
+
+    @property
+    def nLockTime(self) -> int:
+        '''Return the nLockTime int for compatibility with CTransaction.'''
+        return self.locktime
+
+    @property
+    def id(self) -> bytes:
+        '''Return the transaction id.'''
+        tx = self.serialize()
+        return hash256(tx)[::-1]
+
+    @property
+    def hash(self) -> bytes:
+        """Return the transaction hash.
+
+        It differs from tx_id for witness transactions.
+        """
+        serialized_ = self.serialize(include_witness=True)
+        hash256_ = hash256(serialized_)
+        return hash256_[::-1]
+
+    @property
+    def size(self) -> int:
+        '''Return the transaction size.'''
+        return len(self.serialize())
+
+    @property
+    def vsize(self) -> int:
+        '''Return the virtual transaction size.'''
+        return ceil(self.weight / 4)
+
+    @property
+    def weight(self) -> int:
+        no_wit = len(self.serialize(include_witness=False)) * 3
+        wit = len(self.serialize(include_witness=True))
+        return no_wit + wit
+
+    # TODO - decide what to do here
+    # @property
+    # def vwitness(self) -> list[Witness]:
+    #     return [tx_in.script_witness for tx_in in self.vin]
+
+    def assert_valid(self) -> None:
+        '''Verify some essential true things'''
+        # if self.is_coinbase():
+        #     if not 2 <= len(self.vin[0].script_sig) <= 100:
+        #         raise BTClibValueError("Invalid coinbase script size")
+        # else:
+        #     for tx_in in self.vin:
+        #         if tx_in.is_coinbase():
+        #             raise BTClibValueError()
+
+        # must be 1, 2, or 3
+        if not 0 < self.version <= 0x3:
+            raise BTClibValueError(f"invalid version: {self.version}")
+
+        # must be a 4-byte int
+        if not 0 <= self.locktime <= 0xFFFFFFFF:
+            raise ValueError(f"invalid locktime: {self.locktime}")
+
+        if not self.inputs:
+            raise ValueError("Missing inputs")
+        for tx_in in self.inputs:
+            tx_in.assert_valid()
+
+        if not self.outputs:
+            raise ValueError("Missing outputs")
+        for tx_out in self.outputs:
+            tx_out.assert_valid()
 
     def get_txid(self) -> int:
         '''Generate the transaction ID'''
-        return reverse_bytes(bytes_to_hex(hash256(hex_to_bytes(self.serialize()))))
+        # segwit returns legacy txid (markerflag + witness excluded)
+        if self.segwit:
+            # version
+            b = self.version.to_bytes(4, 'little')
+            # inputs
+            b += hex_to_bytes(self.input_cnt)
+            for i in self.inputs:
+                b += i.serialize()
+            # outputs
+            b += hex_to_bytes(self.output_cnt)
+            for o in self.outputs:
+                b += o.serialize()
+            # nLocktime
+            b += self.locktime.to_bytes(4, 'little')
+
+            return hash256(b)[::-1].hex()
+
+        # non-segwit just returns the txid
+        return hash256(self.serialize(include_witness=True))[::-1].hex()
 
     def get_txhash(self) -> int:
-        '''return transaction hash, this is identical to the txid for pre-segwit transactions'''
+        '''return transaction hash'''
+        if self.segwit:
+            return hash256(self.serialize(include_witness=True))[::-1].hex()
+
+        # hash(tx) == txid for legacy bitcoin Tx
         return self.get_txid()
 
-    def serialize(self) -> bytes:
+    def serialize(self, include_witness: bool) -> bytes:
         '''Serialize the transaction'''
-        # version
-        b = self.version
+        # sanity check
+        self.assert_valid()
 
-        # inputs
-        b += hex_to_bytes(self.input_cnt)
-        for i in self.inputs:
-            b += i.serialize()
-
-        # outputs
-        b += hex_to_bytes(self.output_cnt)
-        for o in self.outputs:
-            b += o.serialize()
-
-        # locktime
-        b += self.locktime.to_bytes(4, 'little')
-        return bytes_to_hex(b)
-
-class SegwitTransaction(Transaction):
-    '''SegwitTransaction Class'''
-
-    def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, locktime: int=0):
-        '''Initialize SegWit Transaction'''
-        super().__init__(inputs=vin, outputs=vout, locktime=locktime)
+        segwit = self.segwit and include_witness
 
         # version
-        if not (0 < version and version < 3):
-            raise ValueError("version in {0x1 (legacy), 0x2 (SegWit)}")
-        self.version = version
+        b = self.version.to_bytes(4, byteorder='little', signed=False)
 
-        # marker/flag
-        self.marker = b'\x00' # must be 0x00
-        self.flag = b'\x01'  # must be flag > 0x01. may change w/ future protocol versions.
-
-    def get_txid(self) -> bytes:
-        '''return the txid of the transaction (markerflag + witness excluded)'''
-        b = self.version.to_bytes(4, 'little')
-        b += hex_to_bytes(self.input_cnt)
-
-        # TODO mixed case, some segwit and some non-segwit inputs
-        for i in self.inputs:
-            b += i.serialize()
-
-        b += hex_to_bytes(self.output_cnt)
-        for o in self.outputs:
-            b += o.serialize()
-
-        b += self.locktime.to_bytes(4, 'little')
-
-        return reverse_bytes(bytes_to_hex(hash256(b)))
-
-    def get_txhash(self) -> int:
-        '''return the hash of the whole blob (witness + markerflag included)'''
-        return reverse_bytes(bytes_to_hex(hash256(hex_to_bytes(self.serialize()))))
-
-    def serialize(self) -> bytes:
-        '''return the transaction in raw form'''
-        # version
-        b = self.version.to_bytes(4, 'little')
-
-        # marker/flag
-        b += self.marker
-        b += self.flag
+        # markerflag
+        if segwit:
+            b += (self.marker + self.flag)
 
         # inputs
         b += hex_to_bytes(self.input_cnt)
@@ -210,24 +398,45 @@ class SegwitTransaction(Transaction):
 
         # the Witness repeated...
         # (stack items, stack=[(item_0 size, item_0), (item_1_size, item_1), ...])
-        for i in self.inputs:
-            if i.segwit:
-                b += hex_to_bytes(i.stack_size)  # add stack size
-                for _ in i.witness:
-                    b += hex_to_bytes(get_compact_size(len(_) // 2))
-                    b += hex_to_bytes(_)  # add each stack item
+        if segwit:
+            for i in self.inputs:
+                if i.segwit:
+                    b += hex_to_bytes(i.stack_size)  # add stack size
+                    for _ in i.witness:
+                        b += hex_to_bytes(get_compact_size(len(_) // 2))
+                        b += hex_to_bytes(_)  # add each stack item
 
-        # locktime
-        b += self.locktime.to_bytes(4, 'little')
+        # nLocktime
+        b += self.locktime.to_bytes(4, 'little', signed=False)
 
-        return bytes_to_hex(b)
+        return b
 
-class TaprootTransaction(SegwitTransaction):
+class P2TSHTransaction(Transaction):
     '''TaprootTransaction class'''
 
     def __init__(self, version: int=0x02, vin: List[TxIn]=None, vout: List[TxOut]=None, iPubkey: int=None, MAST: List[int]=None, locktime: int=0):
         '''Initialize Segwit v1, TaprootTransaction'''
         super().__init__(version=version, vin=vin, vout=vout, locktime=locktime)
+
+class UTXOSet:
+    '''Basic class for storing, searching, and managing UTXOs'''
+    def __init__(self) -> None:
+        self.map: Dict[OutPoint, TxOut] = {}
+
+    def add(self, outpoint: OutPoint, txout: TxOut) -> None:
+        self.map[outpoint] = txout
+
+    def remove(self, outpoint: OutPoint) -> None:
+        self.map.pop(outpoint, None)
+
+    def get(self, outpoint: OutPoint) -> TxOut:
+        return self.map[outpoint]
+
+    def contains(self, outpoint: OutPoint) -> bool:
+        return outpoint in self.map
+
+    def balance(self) -> int:
+        return sum(txout.amount for txout in self.map.values())
 
 # Satoshi --> Hal (P2PK)
 HAL_BLOCK_N = 170
@@ -450,38 +659,43 @@ p2tr_opchecksigadd_test = { 'desc': "the first use of the new Tapscript opcode O
 def run_test(test: dict):
     '''Run a single test'''
 
-    isSegwit = False
-
+    # create the vin vector
     inputs = []
     for i in test['Vin']:
+
+        # create an outpoint
+        outpoint = OutPoint(txid=i['txid'], vout=i['vout'])
+
+        # create / append the TxIn and scriptSig or witness
         if i['segwit']:
             inputs.append(
-                TxIn(segwit=True, txid=i['txid'], vout=i['vout'], witness=i['witness'], sequence=i['sequence']))
-            isSegwit = True
+                TxIn(prevout=outpoint, witness=i['witness'], sequence=i['sequence']))
         else:
             inputs.append(
-                TxIn(txid=i['txid'], vout=i['vout'], scriptSig=i['scriptSig'], sequence=i['sequence']))
+                TxIn(prevout=outpoint, scriptSig=i['scriptSig'], sequence=i['sequence']))
 
+    # create the vout vector
     outputs = []
     for o in test['Vout']:
         outputs.append(
-            TxOut(amount=o['amount'], scriptPubKey=o['scriptPubkey']))
+            TxOut(amount=o['amount'], scriptPubkey=o['scriptPubkey']))
 
+    # locktime
     locktime = test['nLocktime'] if 'nLocktime' in test else 0
 
-    if isSegwit:
-        tx = SegwitTransaction(version=test['version'], vin=inputs, vout=outputs, locktime=locktime)
-    else:
-        tx = Transaction(inputs=inputs, outputs=outputs, locktime=locktime)
+    tx = Transaction(version=test['version'], inputs=inputs, outputs=outputs, locktime=locktime)
+
+    if tx.get_txid() != test['TXID']:
+        raise AssertionError(f"\nTest Failed: {test['desc']}\nExpected: {test['TXID']}\nGot:\t{tx.get_txid()}")
 
     assert tx.get_txid() == test['TXID'], f"\nTest Failed: {test['desc']}\nExpected: {test['TXID']}\nGot:\t{tx.get_txid()}"
-    assert tx.serialize() == test['HEX'], f"\nTest Failed: {test['desc']}\nExpected:{test['HEX']}\nGot:\t {tx.serialize()}"
+    assert tx.serialize(include_witness=True).hex() == test['HEX'], f"\nTest Failed: {test['desc']}\nExpected:{test['HEX']}\nGot:\t {tx.serialize(include_witness=True).hex()}"
     assert tx.get_txhash() == test['HASH'], f"\nTest Failed: {test['desc']}\nExpected:{test['HASH']}\nGot:\t {tx.get_txhash()}"
 
     print(f"\nTest Passed: {test['desc']}\n")
     print(f"TXID: {tx.get_txid()}")
     print(f"TXHASH: {tx.get_txhash()}")
-    print(f"HEX: {tx.serialize()}")
+    print(f"HEX: {tx.serialize(include_witness=True).hex()}")
 
 
 def run_tests():
