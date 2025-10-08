@@ -1,5 +1,5 @@
 from hashlib import sha256
-from hashes import tagged_hash
+from bitcointools.hashes import tagged_hash
 
 # SigHash Types
 SIGHASH_ALL = 0x1  # sign all inputs and outputs

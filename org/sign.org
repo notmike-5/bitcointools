@@ -2,7 +2,7 @@
 #+begin_src python :tangle ../sign.py :results silent :session pybtc
 
 from hashlib import sha256
-from hashes import tagged_hash
+from bitcointools.hashes import tagged_hash
 
 #+end_src
 
