@@ -20,12 +20,14 @@ def bytes_to_hex(byte_str: bytes) -> int:
     except binascii.Error:
         raise ValueError(f"Invalid bytes: {byte_str}") from binascii.Error
 
+
 def hex_to_ascii(hex_str: str) -> str:
     '''convert a hexadecimal value to its ascii equiv'''
     try:
         return bytes.fromhex(hex_str).decode('utf-8')
     except UnicodeDecodeError as e:
         return e
+
 
 def hex_to_bytes(hex_str: int) -> bytes:
     '''Convert hex-encoded string to bytes'''
@@ -34,12 +36,14 @@ def hex_to_bytes(hex_str: int) -> bytes:
     except binascii.Error:
         raise ValueError(f"Invalid hex script: {hex_str}") from binascii.Error
 
+
 def int_to_bytes(n: int, endian: str = 'big'):
     if not isinstance(n, int):
         raise ValueError("int_to_bytes: n must be an integer")
     if endian not in ('big', 'little'):
         raise ValueError("int_to_bytes: endian must be \'big\' (default) or \'little\'")
     return n.to_bytes((n.bit_length() + 7) // 8, endian)
+
 
 # TODO refactor so this makes sense for what it does
 def reverse_bytes(byte_str: bytes) -> bytes:
@@ -67,6 +71,7 @@ def parse_varint(tx: bytes, cur: int) -> (int, int):
     # 0xff (rare)
     return int.from_bytes(tx[cur+1:cur+9], 'little'), cur + 9
 
+
 def parse_compact_size(tx: str) -> (int, int):
     '''Parse a compact size from a transaction
     NOTE: Here we assume the compact size occurs at start of str.
@@ -85,6 +90,8 @@ def parse_compact_size(tx: str) -> (int, int):
     # 0xff (rare) - return 8 byte, little-endian
     return tx[18:], int.from_bytes(bytes.fromhex(tx[2:18]), 'little')
 
+
+# TODO - have this thing just spit out bytes, be prepared it will break little things everywhere
 def get_compact_size(n: int=None) -> str:
     '''Get the compact size byte for given script.'''
     if isinstance(n, float) and n.is_integer():
@@ -100,6 +107,12 @@ def get_compact_size(n: int=None) -> str:
         return 'fe' + n.to_bytes(4, 'little').hex()
     else: # n > 0xffffffff
         return 'ff' + n.to_bytes(8, 'little').hex()
+
+
+def serialize_varbytes(b: bytes) -> bytes:
+    '''serialize variably-sized data as: compact-size byte || data bytes'''
+    return get_compact_size(len(b)) + b
+
 
 def hash_sort(arr, n_buckets: int = 997):
     '''a very fast sorting algorithm for numeric data'''
@@ -126,6 +139,7 @@ def hash_sort(arr, n_buckets: int = 997):
             sorted_out.extend(b)
 
     return sorted_out
+
 
 def get_tests(test_vector_file):
     '''helper to load test vectors given in json format'''

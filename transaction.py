@@ -214,8 +214,7 @@ class TxOut:
         self.assert_valid()
 
         b = self.amount.to_bytes(8, byteorder='little', signed=False)  # amount, 8-byte little-endian
-        b += hex_to_bytes(self.scriptPubkey_size)                      # scriptPubkey size, varint
-        b += self.scriptPubKey                                         # scriptPubkey, raw bytes
+        b += serialize_varbytes(scriptPubkey) # scriptPubkey size || scriptPubkey (varint, raw bytes)
 
         return b
 

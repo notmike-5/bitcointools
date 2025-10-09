@@ -1,20 +1,37 @@
 from bitcointools.hashes import sha256, tagged_hash
+from bitcointools.helpers import serialize_varbytes  # TODO (see below w/ get_compact_size)
 from bitcointools.transaction import OutPoint, Transaction, TxOut
 
+
+def get_compact_size(n: int = None) -> bytes:
+    '''Get the compact size byte for given script.'''
+
+    if not isinstance(n, int) or not (0 <= n <= MAX_COMPACT_SIZE):
+        raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
+
+    if n < 0xfd:  # single-byte case when  size < 0xffff
+        return n.to_bytes(1, 'little')
+    elif n <= 0xffff:
+        return b'\xfd' + n.to_bytes(2, 'little')
+    elif n <= 0xffffffff:
+        return b'\xfe' + n.to_bytes(4, 'little')
+    else:  # n > 0xffffffff
+        return b'\xff' + n.to_bytes(8, 'little')
+
 # SigHash Types
+SIGHASH_DEFAULT = 0x0  # Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
 SIGHASH_ALL = 0x1  # sign all inputs and outputs
 SIGHASH_NONE = 0x2  # sign all inputs only
 SIGHASH_SINGLE = 0x3  # sign all inputs and one corresponding output
-SIGHASH_ANYONECANPAY = 0x80 #
-
+SIGHASH_ANYONECANPAY = 0x80  #
 
 # You can use logical operations to combine these into the other types
 # SIGHASH_ANYONECANPAY | SIGHASH_ALL = b'0x81'   # sign one input and all outputs
 # SIGHASH_ANYONECANPAY | SIGHASH_NONE = b'0x82'   # sign one input only
 # SIGHASH_ANYONECANPAY | SIGHASH_SINGLE = b'0x83'  # sign one input and one corresponding output
 
-
 SIGHASH_TYPES = [
+    SIGHASH_DEFAULT,
     SIGHASH_ALL,
     SIGHASH_NONE,
     SIGHASH_SINGLE,
@@ -23,98 +40,141 @@ SIGHASH_TYPES = [
     SIGHASH_ANYONECANPAY | SIGHASH_SINGLE
 ]
 
+EMPTY_HASH32 = b'\x00' * 32
+
+
 def is_valid_hashtype(hash_type: int) -> bool:
     '''make sure we have a valid sighash type'''
     return hash_type in SIGHASH_TYPES
 
 class SigningContext:
     '''class to contain the nuts and bolts context needed to produce a sighash'''
+
     def __init__(self, tx: Transaction, utxos: dict[OutPoint, TxOut]) -> None:
         self.tx = tx
         self.utxos = utxos
 
-        # pre-compute some expensive parts
-        prevouts = b''.join([txin.prevout.serialize() for txin in tx.inputs])
-        amounts = b''.join([utxos[txin.prevout].amount.to_bytes(8, byteorder='little', signed=False) for txin in tx.inputs])
-        scriptPubkeys   = b''.join([utxos[txin.prevout].scriptPubKey for txin in tx.inputs])
-        sequences = b''.join([txin.sequence.to_bytes(4, byteorder='little', signed=False) for txin in tx.inputs])
-        outputs = b''.join([txout.serialize() for txout in tx.outputs])
+        # (Pre)Compute / Cache Expensive Hashes
+        ########################################
+        # all input prevouts
+        self.hash_prevouts = sha256(b''.join(
+            txin.prevout.serialize() for txin in tx.inputs
+        ))
+        # all input amounts
+        self.hash_amounts = sha256(b''.join(
+            self.utxos[txin.prevout].amount.to_bytes(8, byteorder='little') for txin in tx.inputs
+        ))
 
-        # cache the hashes
-        self.prevouts = sha256(prevouts)
-        self.amounts = sha256(amounts)
-        self.scriptPubkeys = sha256(scriptPubkeys)
-        self.sequences = sha256(sequences)
-        self.outputs = sha256(outputs)
+        # all input scriptPubkeys
+        self.hash_scriptPubkeys = sha256(b''.join(
+            serialize_varbytes(utxos[txin.prevout].scriptPubKey) for txin in tx.inputs
+        ))
+
+        # all input sequences
+        self.hash_sequences = sha256(b''.join(
+            txin.sequence.to_bytes(4, byteorder='little') for txin in tx.inputs
+        ))
+
+        # all tx outputs
+        self.hash_outputs = sha256(b''.join(
+            txout.serialize() for txout in tx.outputs
+        ))
 
         # pre-compute per-input serialization for ANYONECANPAY
         self.serialized_inputs = []
         for txin in tx.inputs:
-            txout = self.utxos[txin.prevout]
-            s = (txin.prevout.serialize() +
-                 txout.amount.to_bytes(8, 'little') +
-                 txout.scriptPubKey +
-                 txin.sequence.to_bytes(4, 'little'))
+            s = (txin.prevout.serialize() +              # OutPoint = (txid, vout)
+                 self.utxos[txin.prevout].serialize() +  # amount & scriptPubkey from OutPoint
+                 txin.sequence.to_bytes(4, 'little'))    # sequence, 4-byte little-endian
             self.serialized_inputs.append(s)
 
-    def taproot_sign(self, input_idx: int, hashtype: int, ext_flag: int = 0, annex: bytes = None, message_ext: bytes = None) -> bytes:
-        '''compute the BIP-341 / Taproot common signature message for given input index.'''
 
-        txin = self.tx.inputs[input_idx]
+    def taproot_sign(self, input_idx: int, sighash_type: int = SIGHASH_DEFAULT, ext_flag: int = 0, annex: bytes = None, message_ext: bytes = None) -> bytes:
+        '''compute the BIP-341 / Taproot Common Signature Message ('sighash') for given input index.'''
 
-        # sanity check
+        # Get the signature type
+        base_type = sighash_type & 0x3
+        anyone_can_pay = sighash_type & SIGHASH_ANYONECANPAY
+
+        # Sanity Check
         if annex and annex[0] != 0x50:
             raise ValueError("Annex must start with 0x50")
         if ext_flag != 0:
             raise ValueError("ext_flag must be 0 until a softfork defines otherwise")
         if message_ext:
             raise ValueError("message_ext must be empty until defined otherwise")
-        if hashtype not in SIGHASH_TYPES:
-            raise ValueError(f"Unknown sighash type: {hashtype}")
-        if (hashtype & SIGHASH_SINGLE) == SIGHASH_SINGLE and (input_idx >= len(self.tx.outputs)):
+        if not is_valid_hashtype(sighash_type):
+            raise ValueError(f"Unknown sighash type: {sighash_type}")
+        if (base_type == SIGHASH_SINGLE) and (input_idx >= len(self.tx.outputs)):
             raise ValueError("SIGHASH_SINGLE without corresponding output")
 
-        # construct the common signature message
-        message = b"\x00"  # epoch
-        message += hashtype.to_bytes(1, 'little')  # hash type
+        # inputs
+        if not anyone_can_pay:
+            # previous outpoints
+            hash_prevouts = self.hash_prevouts
+            # amounts
+            hash_amounts = self.hash_amounts
+            # scriptPubkey
+            hash_scriptPubkeys = self.hash_scriptPubkeys
+            # sequences
+            hash_sequences = self.hash_sequences
+        else:
+            # else its 32 bytes of zero, baby
+            hash_prevouts = hash_amounts = hash_scriptPubkeys = hash_sequences = EMPTY_HASH32
+
+        # outputs
+        if base_type == SIGHASH_ALL:  # sign all outputs
+            hash_outputs = self.hash_outputs
+        elif base_type == SIGHASH_SINGLE:  # sign one output corresponding to input_idx
+            hash_outputs = sha256(self.tx.outputs[input_idx].serialize())
+        else:  # otherwise - believe it or not - its 32 bytes of zero
+            hash_outputs = EMPTY_HASH32
+
+        # annex
+        if annex_present := bool(annex):
+            annex = serialize_varbytes(annex)
+            hash_annex = sha256(annex)
+        else:
+            hash_annex = b''
+
+
+        # Construct the Common Signature Message
+        ########################################
+        message = b'\x00'  # epoch
+        message += sighash_type.to_bytes(1, 'little')  # hash type
         message += self.tx.version.to_bytes(4, 'little')  # version
         message += self.tx.locktime.to_bytes(4, 'little')  # nLocktime
 
-        # inputs / sequences hash
-        if (hashtype & 0x80) != SIGHASH_ANYONECANPAY:
-            message += self.prevouts
-            message += self.amounts
-            message += self.scriptPubkeys
-            message += self.sequences
+        if not anyone_can_pay:
+            message += hash_prevouts
+            message += hash_amounts
+            message += hash_scriptpubkeys
+            message += hash_sequences
 
-        # outputs hash
-        if (hashtype & 0x03) not in [SIGHASH_NONE, SIGHASH_SINGLE]:
-            message += self.outputs
+        if base_type not in [SIGHASH_NONE, SIGHASH_SINGLE]:
+            message += hash_outputs
 
-        annex_present = int(bool(annex))
-        message += (2 * ext_flag + annex_present).to_bytes(1, "little")
+        # spend type
+        message += (2 * ext_flag + (1 if annex_present else 0)).to_bytes(1, 'little')
 
-        # input-specific serialization
-        if (hashtype & 0x80) == SIGHASH_ANYONECANPAY:
-            # just sign this input
+        # full serialization of this input
+        if anyone_can_pay:
             message += self.serialized_inputs[input_idx]
         else:
-            # sequence for this input
-            message += txin.sequence.to_bytes(4, 'little')
+            message += input_idx.to_bytes(4, 'little')  # index of input being signed for
 
         # annex serialization
-        if annex_present:
-            message += len(annex).to_bytes(1, 'little') + annex
+        message += annex
 
         # SIGHASH_SINGLE output serialization
-        if (hashtype & 0x03) == SIGHASH_SINGLE:
-            txout = self.tx.outputs[input_idx]
-            message += txout.serialize()
+        if base_type == SIGHASH_SINGLE:
+             txout = self.tx.outputs[input_idx]
+             message += txout.serialize()
 
         # message extension (currently always empty if we got to here)
         if message_ext:
             message += message_ext
 
-        return tagged_hash("TapSigHash", message)
+        return tagged_hash("TapSighash", message)
 
 
