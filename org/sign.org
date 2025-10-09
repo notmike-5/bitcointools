@@ -100,7 +100,7 @@ class SigningContext:
 
         # all input scriptPubkeys
         self.hash_scriptPubkeys = sha256(b''.join(
-            serialize_varbytes(utxos[txin.prevout].scriptPubKey) for txin in tx.inputs
+            serialize_varbytes(utxos[txin.prevout].scriptPubkey) for txin in tx.inputs
         ))
 
         # all input sequences
