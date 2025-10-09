@@ -108,12 +108,6 @@ def get_compact_size(n: int=None) -> str:
     else: # n > 0xffffffff
         return 'ff' + n.to_bytes(8, 'little').hex()
 
-
-def serialize_varbytes(b: bytes) -> bytes:
-    '''serialize variably-sized data as: compact-size byte || data bytes'''
-    return get_compact_size(len(b)) + b
-
-
 def hash_sort(arr, n_buckets: int = 997):
     '''a very fast sorting algorithm for numeric data'''
     if arr is None:

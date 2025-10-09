@@ -1,5 +1,5 @@
 from bitcointools.hashes import sha256, tagged_hash
-from bitcointools.helpers import serialize_varbytes  # TODO (see below w/ get_compact_size)
+#from bitcointools.helpers import get_compact_size, serialize_varbytes  # TODO (see below w/ get_compact_size)
 from bitcointools.transaction import OutPoint, Transaction, TxOut
 
 
@@ -17,6 +17,10 @@ def get_compact_size(n: int = None) -> bytes:
         return b'\xfe' + n.to_bytes(4, 'little')
     else:  # n > 0xffffffff
         return b'\xff' + n.to_bytes(8, 'little')
+
+def serialize_varbytes(b: bytes) -> bytes:
+    '''serialize variably-sized data as: compact-size byte || data bytes'''
+    return get_compact_size(len(b)) + b
 
 # SigHash Types
 SIGHASH_DEFAULT = 0x0  # Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
