@@ -3,7 +3,7 @@ from .helpers import get_compact_size, serialize_varbytes
 from .transaction import OutPoint, Transaction, TxOut
 
 # SigHash Types
-SIGHASH_DEFAULT = 0x0  # Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
+SIGHASH_DEFAULT = 0x0  # Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL TODO: fix this
 SIGHASH_ALL = 0x1  # sign all inputs and outputs
 SIGHASH_NONE = 0x2  # sign all inputs only
 SIGHASH_SINGLE = 0x3  # sign all inputs and one corresponding output
@@ -93,11 +93,15 @@ class SigningContext:
     ) -> bytes:
         """compute the BIP-341 / Taproot Common Signature Message ('sighash') for given input index."""
 
+        # SIGHASH_DEFAULT treated as SIGHASH_ALL
+        if sighash_type == SIGHASH_DEFAULT:
+            sighash_type = SIGHASH_ALL
+
         # Get the signature type
         base_type = sighash_type & 0x3
         anyone_can_pay = sighash_type & SIGHASH_ANYONECANPAY
 
-        # Sanity Check
+        # Sanity Check, Fail Early
         if annex and annex[0] != 0x50:
             raise ValueError("Annex must start with 0x50")
         if not ext_flag in [0, 1]:
@@ -176,4 +180,5 @@ class SigningContext:
         if message_ext:
             message += message_ext
 
-        return tagged_hash("TapSighash", message), message
+        # n.b. second return value can be useful for debugging
+        return tagged_hash("TapSighash", message), message.hex()
