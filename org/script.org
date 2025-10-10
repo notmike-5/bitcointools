@@ -1,5 +1,5 @@
 #+begin_src python :tangle ../script.py :results silent :session pybtc
-from helpers import get_compact_size():
+from helpers import get_compact_size
 import opcode
 
 #+end_src

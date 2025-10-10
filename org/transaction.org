@@ -133,8 +133,8 @@ locktime (4-byte, little-endian): ffd30a00
 * Imports
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
-from bitcointools.helpers import get_compact_size, hex_to_ascii, hex_to_bytes
-from bitcointools.hashes import hash256
+from helpers import get_compact_size, hex_to_ascii, hex_to_bytes, serialize_varbytes
+from hashes import hash256
 
 #+end_src
 
@@ -287,7 +287,7 @@ class TxIn:
                 case _:
                     raise ValueError("You must provide a scriptSig for each legacy input.")
 
-        self.scriptSig_size = get_compact_size(len(self.scriptSig))  # size of scriptSig in bytes
+        self.scriptSig_size = get_compact_size(len(self.scriptSig))
 
         # Sequence for e.g. nLocktime or replace-by-fee
         if not (0x0 <= sequence <= 0xffffffff):
@@ -339,8 +339,7 @@ class TxIn:
         if self.segwit:
             b += b'\x00'  # no scriptSig, length 0
         else:
-            b += hex_to_bytes(self.scriptSig_size)                         # scriptSig size, varint
-            b += self.scriptSig                                            # scriptSig, raw bytes
+            b += serialize_varbytes(self.scriptSig) # scriptSig as (size byte) (scriptSig raw bytes)
         b += self.sequence.to_bytes(4, byteorder='little', signed=False)   # sequence, 4-byte little-endian
 
         return b
@@ -405,7 +404,7 @@ class TxOut:
         self.assert_valid()
 
         b = self.amount.to_bytes(8, byteorder='little', signed=False)  # amount, 8-byte little-endian
-        b += serialize_varbytes(scriptPubkey) # scriptPubkey size || scriptPubkey (varint, raw bytes)
+        b += serialize_varbytes(self.scriptPubkey) # scriptPubkey as (size byte) || (scriptPubkey, raw bytes)
 
         return b
 
@@ -553,11 +552,11 @@ class Transaction:
             # version
             b = self.version.to_bytes(4, 'little')
             # inputs
-            b += hex_to_bytes(self.input_cnt)
+            b += self.input_cnt
             for i in self.inputs:
                 b += i.serialize()
             # outputs
-            b += hex_to_bytes(self.output_cnt)
+            b += self.output_cnt
             for o in self.outputs:
                 b += o.serialize()
             # nLocktime
@@ -591,12 +590,12 @@ class Transaction:
             b += (self.marker + self.flag)
 
         # inputs
-        b += hex_to_bytes(self.input_cnt)
+        b += self.input_cnt
         for i in self.inputs:
             b += i.serialize()
 
         # outputs
-        b += hex_to_bytes(self.output_cnt)
+        b += self.output_cnt
         for o in self.outputs:
             b += o.serialize()
 
@@ -605,10 +604,9 @@ class Transaction:
         if segwit:
             for i in self.inputs:
                 if i.segwit:
-                    b += hex_to_bytes(i.stack_size)  # add stack size
+                    b += i.stack_size  # add stack size
                     for _ in i.witness:
-                        b += hex_to_bytes(get_compact_size(len(_) // 2))
-                        b += hex_to_bytes(_)  # add each stack item
+                        b += serialize_varbytes(bytes.fromhex(_))  # add each stack item
 
         # nLocktime
         b += self.locktime.to_bytes(4, 'little', signed=False)

@@ -17,7 +17,8 @@ def sha256(data: bytes) -> bytes:
 
 def hash256(data: bytes) -> bytes:
     '''Compute the double SHA-256 hash of input data'''
-    assert isinstance(data, bytes)
+    if not isinstance(data, bytes):
+        print(f"data is {data} not bytes")
     return sha256(sha256(data))
 
 def tagged_hash(tag: str, data: bytes) -> bytes:

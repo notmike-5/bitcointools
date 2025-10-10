@@ -89,8 +89,8 @@ Opcodes from 0x50 to 0x60 and 0x62 to 0x6F are reserved as OP_SUCCESSx
 * Imports
 #+begin_src python :tangle ../taproot.py :results silent :session pybtc
 
-from bitcointools.hashes import tagged_hash
-from bitcointools.helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
+from hashes import tagged_hash
+from helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests, serialize_varbytes
 import secp256k1
 
 #+end_src
@@ -110,13 +110,15 @@ def negate_pubkey(pubkey: secp256k1.PublicKey) -> secp256k1.PublicKey:
 def tapleaf_hash(tapscript_ver: str = 'c0', script: str = None) -> str:
     '''Hash function for tapleaf'''
     if not script:
-        print("Wat? You forgot the tap script.")
+        print("Wat? You forgot the tapscript.")
         return None
-    script_bytes = hex_to_bytes(script)
-    compact_size = get_compact_size(len(script_bytes))
-    data_hex = tapscript_ver + compact_size + script
-    data_bytes = hex_to_bytes(data_hex)
-    return tagged_hash("TapLeaf", data_bytes).hex()
+
+    leaf = b''.join((
+        bytes.fromhex(tapscript_ver),
+        serialize_varbytes(bytes.fromhex(script))
+    ))
+
+    return tagged_hash("TapLeaf", leaf).hex()
 
 def tapbranch_hash(left, right):
     if left < right:
@@ -214,7 +216,7 @@ def create_taproot_mast(internal_pubkey_hex, script_tree):
 def BIP341_tests():
     print("\nRunning Taproot (BIP-0341) Tests...")
 
-    V = get_tests("bitcointools/test/bip341_wallet_test_vectors.json")
+    V = get_tests("test/bip341_wallet_test_vectors.json")
 
     #
     # BIP-341 - scriptPubKey Test Vectors
@@ -297,7 +299,7 @@ def BIP341_tests():
 def BIP360_tests():
     print("\nRunning Taproot (BIP-0360) Tests...")
 
-    V = get_tests("bitcointools/test/p2tsh_construction.json")
+    V = get_tests("test/p2tsh_construction.json")
 
     #
     # BIP-360 - Test Vectors

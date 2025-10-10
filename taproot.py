@@ -1,39 +1,52 @@
-from bitcointools.hashes import tagged_hash
-from bitcointools.helpers import bytes_to_hex, hex_to_bytes, get_compact_size, get_tests
+from hashes import tagged_hash
+from helpers import (
+    bytes_to_hex,
+    hex_to_bytes,
+    get_compact_size,
+    get_tests,
+    serialize_varbytes,
+)
 import secp256k1
 
 # secp256k1 curve order (for negation: -1 ≡ order - 1 mod order)
-CURVE_ORDER = int('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141', 16)
+CURVE_ORDER = int(
+    "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16
+)
+
 
 def negate_pubkey(pubkey: secp256k1.PublicKey) -> secp256k1.PublicKey:
-    '''Negate a pubkey point (multiply by -1 on the curve)'''
-    neg_scalar = (CURVE_ORDER - 1).to_bytes(32, 'big')  # -1 mod order
+    """Negate a pubkey point (multiply by -1 on the curve)"""
+    neg_scalar = (CURVE_ORDER - 1).to_bytes(32, "big")  # -1 mod order
     return pubkey.tweak_mul(neg_scalar)
 
-def tapleaf_hash(tapscript_ver: str = 'c0', script: str = None) -> str:
-    '''Hash function for tapleaf'''
+
+def tapleaf_hash(tapscript_ver: str = "c0", script: str = None) -> str:
+    """Hash function for tapleaf"""
     if not script:
-        print("Wat? You forgot the tap script.")
+        print("Wat? You forgot the tapscript.")
         return None
-    script_bytes = hex_to_bytes(script)
-    compact_size = get_compact_size(len(script_bytes))
-    data_hex = tapscript_ver + compact_size + script
-    data_bytes = hex_to_bytes(data_hex)
-    return tagged_hash("TapLeaf", data_bytes).hex()
+
+    leaf = b"".join(
+        (bytes.fromhex(tapscript_ver), serialize_varbytes(bytes.fromhex(script)))
+    )
+
+    return tagged_hash("TapLeaf", leaf).hex()
+
 
 def tapbranch_hash(left, right):
     if left < right:
         return tagged_hash("TapBranch", hex_to_bytes(left) + hex_to_bytes(right))
     return tagged_hash("TapBranch", hex_to_bytes(right) + hex_to_bytes(left))
 
+
 def collect_leaf_hashes(tree, hashes=None, debug=False):
     """Recursively collect leaf hashes in order (for verification)."""
     if hashes is None:
         hashes = []
 
-    if isinstance(tree, dict):    # Leaf
+    if isinstance(tree, dict):  # Leaf
         version = f"{tree['leafVersion']:x}"
-        script = tree['script']
+        script = tree["script"]
         h = tapleaf_hash(tapscript_ver=version, script=script)
         hashes.append(h)
         if debug:
@@ -46,11 +59,12 @@ def collect_leaf_hashes(tree, hashes=None, debug=False):
 
     return hashes
 
+
 def compute_merkle_root(tree):
     """Recursively compute taptree merkle root"""
-    if isinstance(tree, dict):    # Leaf
+    if isinstance(tree, dict):  # Leaf
         version = f"{tree['leafVersion']:x}"
-        script = tree['script']
+        script = tree["script"]
         return tapleaf_hash(tapscript_ver=version, script=script)
 
     elif isinstance(tree, list):  # Branch
@@ -60,11 +74,12 @@ def compute_merkle_root(tree):
             root = tapbranch_hash(root, h)
         return root.hex()
 
-    else:                         # badbadnotgood
+    else:  # badbadnotgood
         raise ValueError("Invalid tree node")
 
+
 def compute_taproot_output(internal_pubkey, merkle_root):
-    '''Compute the Taproot pubkey and scriptPubKey'''
+    """Compute the Taproot pubkey and scriptPubKey"""
     if len(internal_pubkey) != 32:
         print(f"internal_pubkey was {internal_pubkey}")
         raise ValueError("Internal pubkey must be 32 bytes")
@@ -76,7 +91,7 @@ def compute_taproot_output(internal_pubkey, merkle_root):
     tweak = tagged_hash("TapTweak", internal_pubkey + merkle_root)
 
     # tweak the pubkey
-    pubkey = secp256k1.PublicKey(b'\x02' + internal_pubkey, raw=True)
+    pubkey = secp256k1.PublicKey(b"\x02" + internal_pubkey, raw=True)
     tweaked_pubkey = pubkey.tweak_add(tweak)
 
     # ensure even y-coordinate
@@ -92,56 +107,60 @@ def compute_taproot_output(internal_pubkey, merkle_root):
 
     return tweak.hex(), xonly_tweaked_pubkey.hex(), script_pubkey.hex()
 
+
 # TODO: test coverage on create_taproot_mast
 def create_taproot_mast(internal_pubkey_hex, script_tree):
-    '''Create a Taproot MAST from scripts and internal pubkey'''
+    """Create a Taproot MAST from scripts and internal pubkey"""
     try:
         internal_pubkey = hex_to_bytes(internal_pubkey_hex)
         taptree_root = hex_to_bytes(compute_merkle_root(script_tree))
-        tweak, tweaked_pubkey, script_pubkey = compute_taproot_output(internal_pubkey, taptree_root)
+        tweak, tweaked_pubkey, script_pubkey = compute_taproot_output(
+            internal_pubkey, taptree_root
+        )
         return {
             "taptree_root": taptree_root.hex(),
             "tweaked_pubkey": tweaked_pubkey,
-            "script_pubkey": script_pubkey
+            "script_pubkey": script_pubkey,
         }
     except Exception as e:
         raise ValueError(f"Error creating Taproot MAST: {str(e)}") from e
 
+
 def BIP341_tests():
     print("\nRunning Taproot (BIP-0341) Tests...")
 
-    V = get_tests("bitcointools/test/bip341_wallet_test_vectors.json")
+    V = get_tests("test/bip341_wallet_test_vectors.json")
 
     #
     # BIP-341 - scriptPubKey Test Vectors
     #
 
-    i=1
-    for v in V['scriptPubKey']:
+    i = 1
+    for v in V["scriptPubKey"]:
         print(f"\nBIP-341 Test Vector {i}\n", "-" * 25)
         i += 1
 
         # Extract the test data
-        given, intermediary, expected = v['given'], v['intermediary'], v['expected']
+        given, intermediary, expected = v["given"], v["intermediary"], v["expected"]
 
-        internal_pubkey = given['internalPubkey']
-        script_tree = given['scriptTree']
+        internal_pubkey = given["internalPubkey"]
+        script_tree = given["scriptTree"]
 
         try:
-            leaf_hashes = intermediary['leafHashes']
+            leaf_hashes = intermediary["leafHashes"]
         except:
             pass
 
-        merkle_root = intermediary['merkleRoot']
+        merkle_root = intermediary["merkleRoot"]
 
-        tweak = intermediary['tweak']
-        tweaked_pubkey = intermediary['tweakedPubkey']
-        script_pubkey = expected['scriptPubKey']
+        tweak = intermediary["tweak"]
+        tweaked_pubkey = intermediary["tweakedPubkey"]
+        script_pubkey = expected["scriptPubKey"]
 
-        bip350_address = expected['bip350Address']
+        bip350_address = expected["bip350Address"]
 
         try:
-            script_path_control_blocks = expected['scriptPathControlBlocks']
+            script_path_control_blocks = expected["scriptPathControlBlocks"]
         except:
             pass
 
@@ -167,8 +186,12 @@ def BIP341_tests():
 
         # Generate tweak, tweakedPubKey, and scriptPubkey
 
-        internal_pubkey_bytes, merkle_root_bytes = hex_to_bytes(internal_pubkey), hex_to_bytes(merkle_root)
-        derived_tweak, derived_tweaked_pubkey, derived_script_pubkey = compute_taproot_output(internal_pubkey_bytes, merkle_root_bytes)
+        internal_pubkey_bytes, merkle_root_bytes = hex_to_bytes(
+            internal_pubkey
+        ), hex_to_bytes(merkle_root)
+        derived_tweak, derived_tweaked_pubkey, derived_script_pubkey = (
+            compute_taproot_output(internal_pubkey_bytes, merkle_root_bytes)
+        )
 
         assert derived_tweak == tweak
         assert derived_tweaked_pubkey == tweaked_pubkey
@@ -187,62 +210,59 @@ def BIP341_tests():
 
     print("\nAll BIP-341 Tests Passed Successfully!")
 
+
 def BIP360_tests():
     print("\nRunning Taproot (BIP-0360) Tests...")
 
-    V = get_tests("bitcointools/test/p2tsh_construction.json")
+    V = get_tests("test/p2tsh_construction.json")
 
     #
     # BIP-360 - Test Vectors
     #
 
-    i=1
-    for v in V['test_vectors']:
+    i = 1
+    for v in V["test_vectors"]:
         print(f"\nBIP-360 Test Vector {i}\n", "-" * 25)
         i += 1
 
         # Extract the test data
-        id = v['id']
-        objective = v['objective']
-
+        id = v["id"]
+        objective = v["objective"]
 
         # Given
-        script_tree = v['given']['scriptTree']
-
+        script_tree = v["given"]["scriptTree"]
 
         # Intermediary
         try:
-            leaf_hashes = v['intermediary']['leafHashes']
+            leaf_hashes = v["intermediary"]["leafHashes"]
         except:
             pass
 
         try:
-            merkle_root = v['intermediary']['merkleRoot']
+            merkle_root = v["intermediary"]["merkleRoot"]
         except:
             merkle_root = None
 
-
         # Expected
         try:
-            script_pubkey = v['expected']['scriptPubKey']
+            script_pubkey = v["expected"]["scriptPubKey"]
         except:
             script_pubkey = None
 
         try:
-            bip350_address = v['expected']['bip350Address']
+            bip350_address = v["expected"]["bip350Address"]
         except:
             pass
 
         try:
-            script_path_control_blocks = v['expected']['scriptPathControlBlocks']
+            script_path_control_blocks = v["expected"]["scriptPathControlBlocks"]
         except:
             pass
 
         try:
-            error = v['expected']['error']
+            error = v["expected"]["error"]
         except:
             pass
-
 
         # Generate taptree
 
@@ -273,9 +293,11 @@ def BIP360_tests():
 
     print("\nAll BIP-360 Tests Passed Successfully!")
 
+
 def run_tests():
     BIP341_tests()
     BIP360_tests()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run_tests()

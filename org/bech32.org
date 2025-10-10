@@ -5,7 +5,7 @@ from enum import Enum
 from typing import List
 import binascii
 import unittest
-from bitcointools.helpers import get_tests
+from helpers import get_tests
 
 #+end_src
 
@@ -28,20 +28,24 @@ BECH32_PREFIX = 'bc'
 * Functions
 #+begin_src python :tangle ../bech32.py :results silent :session pybtc
 
-def bech32_polymod(values):
+def bech32_polymod(values: list) -> int:
     '''compute checksum by taking values mod a (very) large polynomial'''
     generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3]
     chk = 1
+
     for v in values:
         top = (chk >> 25)
         chk = (chk & 0x1ffffff) << 5 ^ v
         for i in range(5):
             chk ^= generator[i] if ((top >> i) & 1) else 0
+
     return chk
+
 
 def bech32_hrp_expand(hrp):
     '''expand the human readable part for checksum computation'''
     return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
+
 
 def bech32_verify_checksum(hrp: str='bc', data=None):
     '''verify a Bech32 checksum given hrp and converted data chars'''
@@ -57,6 +61,7 @@ def bech32_verify_checksum(hrp: str='bc', data=None):
 
     return None
 
+
 # Bech32 checksum generation
 def bech32_create_checksum(hrp: str=None, data=None, spec=None):
     '''create a Bech32 checksum'''
@@ -69,10 +74,12 @@ def bech32_create_checksum(hrp: str=None, data=None, spec=None):
 
     return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
+
 def bech32_encode(hrp, data, spec):
     '''Compute a Bech32 string given hrp and data'''
     combined = data + bech32_create_checksum(hrp, data, spec)
     return hrp + '1' + ''.join([BECH32_CHARSET[c] for c in combined])
+
 
 def bech32_decode(bech):
     '''Validate a Bech32/Bech32m string, and determine hrp and data'''
@@ -96,13 +103,15 @@ def bech32_decode(bech):
 
     return (hrp, data[:-6], spec)
 
+
 def convertbits(data, frombits, tobits, pad=True):
-    """General power-of-2 base conversion."""
+    '''General power-of-2 base conversion.'''
     acc = 0
     bits = 0
     ret = []
     maxv = (1 << tobits) - 1
     max_acc = (1 << (frombits + tobits - 1)) - 1
+
     for value in data:
         if value < 0 or (value >> frombits):
             return None
@@ -111,15 +120,18 @@ def convertbits(data, frombits, tobits, pad=True):
         while bits >= tobits:
             bits -= tobits
             ret.append((acc >> bits) & maxv)
+
     if pad:
         if bits:
             ret.append((acc << (tobits - bits)) & maxv)
     elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
         return None
+
     return ret
 
+
 def decode(hrp, addr):
-    """Decode a SegWit address."""
+    '''Decode a SegWit address.'''
     hrpgot, data, spec = bech32_decode(addr)
     if hrpgot != hrp:
         return (None, None)
@@ -137,23 +149,26 @@ def decode(hrp, addr):
 
     return (data[0], decoded)
 
+
 def encode(hrp, witver, witprog):
-    """Encode a SegWit address."""
+    '''Encode a SegWit address.'''
     spec = Encoding.BECH32 if witver == 0 else Encoding.BECH32M
     ret = bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5), spec)
+
     if decode(hrp, ret) == (None, None):
         return None
 
     return ret
 
+
 def s2w(script: str) -> List[int]:
-    """convert a script/witprog hex string to a List[int] of its bytes"""
+    '''Convert a script/witprog hex string to a List[int] of its bytes'''
     return [int(f"{script[i:i+2]}", 16) for i in  range(0, len(script), 2)]
 
 
 # TODO: Get rid of this function and prefer a better use of encode()
 def get_bech32_address(taptree_root: str, witness_version: int = 1, hrp: str = 'bc') -> str:
-    """helper to generate  addresses from the taptree root"""
+    '''helper to generate  addresses from the taptree root'''
     spec = Encoding.BECH32 if witness_version == 0 else Encoding.BECH32M
     witness_program = s2w(taptree_root)
     data = [witness_version] + convertbits(witness_program, 8, 5)
@@ -345,7 +360,7 @@ if __name__ == "__main__":
 
     # BIP-0341 Segwit v1 ("Taproot") / bech32 Encoding Tests
     # from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
-    V = get_tests("bitcointools/test/bip341_wallet_test_vectors.json")
+    V = get_tests("test/bip341_wallet_test_vectors.json")
 
     print("\nBIP-0341 Segwit v1 (Taproot) / bech32 Encoding Tests\n", '-' * 50)
     for v in V['scriptPubKey']:
@@ -357,7 +372,7 @@ if __name__ == "__main__":
 
     # BIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests
     # from https://github.com/jbride/bips/blob/p2tsh/bip-0360/ref-impl/common/tests/data/p2tsh_construction.json
-    V = get_tests("bitcointools/test/p2tsh_construction.json")
+    V = get_tests("test/p2tsh_construction.json")
 
     print("\nBIP-0360 Segwit v2 (P2TSH) / bech32 Encoding Tests\n", '-' * 50)
     for v in V['test_vectors']:

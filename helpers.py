@@ -4,8 +4,9 @@ import random
 
 MAX_COMPACT_SIZE = 2**64 - 1
 
+
 def bytes_to_hex(byte_str: bytes) -> int:
-    '''Convert bytes to their hexadecimal representation'''
+    """Convert bytes to their hexadecimal representation"""
     try:
         return binascii.hexlify(byte_str).decode()
     except binascii.Error:
@@ -13,88 +14,98 @@ def bytes_to_hex(byte_str: bytes) -> int:
 
 
 def hex_to_ascii(hex_str: str) -> str:
-    '''convert a hexadecimal value to its ascii equiv'''
+    """convert a hexadecimal value to its ascii equiv"""
     try:
-        return bytes.fromhex(hex_str).decode('utf-8')
+        return bytes.fromhex(hex_str).decode("utf-8")
     except UnicodeDecodeError as e:
         return e
 
 
 def hex_to_bytes(hex_str: int) -> bytes:
-    '''Convert hex-encoded string to bytes'''
+    """Convert hex-encoded string to bytes"""
     try:
         return binascii.unhexlify(hex_str)
     except binascii.Error:
         raise ValueError(f"Invalid hex script: {hex_str}") from binascii.Error
 
 
-def int_to_bytes(n: int, endian: str = 'big'):
+def int_to_bytes(n: int, endian: str = "big"):
     if not isinstance(n, int):
         raise ValueError("int_to_bytes: n must be an integer")
-    if endian not in ('big', 'little'):
-        raise ValueError("int_to_bytes: endian must be \'big\' (default) or \'little\'")
+    if endian not in ("big", "little"):
+        raise ValueError("int_to_bytes: endian must be 'big' (default) or 'little'")
     return n.to_bytes((n.bit_length() + 7) // 8, endian)
 
 
 # TODO refactor so this makes sense for what it does
 def reverse_bytes(byte_str: bytes) -> bytes:
-    '''Convert between big- and litttle-endian'''
+    """Convert between big- and litttle-endian"""
     return bytes.fromhex(byte_str)[::-1].hex()
+
 
 # TO-DO: deprecated, need to remove from segwit.py
 def parse_varint(tx: bytes, cur: int) -> (int, int):
-    '''Parse a variable-length integer from the transaction data
-    and move cursor to appropriate position'''
-    if tx[cur] not in list(range(0x0, 0xff)):
-        raise ValueError(f'parse_varint called on invalid byte {tx[cur]}')
-    if tx[cur] < 0xfd:
+    """Parse a variable-length integer from the transaction data
+    and move cursor to appropriate position"""
+    if tx[cur] not in list(range(0x0, 0xFF)):
+        raise ValueError(f"parse_varint called on invalid byte {tx[cur]}")
+    if tx[cur] < 0xFD:
         return tx[cur], cur + 1
-    if tx[cur] == 0xfd:
-        return int.from_bytes(tx[cur+1:cur+3], 'little'), cur + 3
-    if tx[cur] == 0xfe:
-        return int.from_bytes(tx[cur+1:cur+5], 'little'), cur + 5
+    if tx[cur] == 0xFD:
+        return int.from_bytes(tx[cur + 1 : cur + 3], "little"), cur + 3
+    if tx[cur] == 0xFE:
+        return int.from_bytes(tx[cur + 1 : cur + 5], "little"), cur + 5
     # 0xff (rare)
-    return int.from_bytes(tx[cur+1:cur+9], 'little'), cur + 9
+    return int.from_bytes(tx[cur + 1 : cur + 9], "little"), cur + 9
 
 
 def parse_compact_size(tx: str) -> (int, int):
-    '''Parse a compact size from a transaction
+    """Parse a compact size from a transaction
     NOTE: Here we assume the compact size occurs at start of str.
-    We parse and return the compact size and shorter transaction'''
+    We parse and return the compact size and shorter transaction"""
 
     size_byte = int(tx[:2], 16)
 
     if size_byte not in list(range(0x0, 0x100)):
-        raise ValueError(f'parse_compact_size called on invalid byte {tx[:2]}')
-    if size_byte < 0xfd:  # return the byte
-        return tx[:2], int.from_bytes(bytes.fromhex(tx[:2]), 'little')
-    if size_byte == 0xfd:  # return 2 byte, little-endian
-        return tx[6:], int.from_bytes(bytes.fromhex(tx[2:6]), 'little')
-    if size_byte == 0xfe:  # return 4 byte, little-endian
-        return tx[10:], int.from_bytes(bytes.fromhex(tx[2:10]), 'little')
+        raise ValueError(f"parse_compact_size called on invalid byte {tx[:2]}")
+    if size_byte < 0xFD:  # return the byte
+        return tx[:2], int.from_bytes(bytes.fromhex(tx[:2]), "little")
+    if size_byte == 0xFD:  # return 2 byte, little-endian
+        return tx[6:], int.from_bytes(bytes.fromhex(tx[2:6]), "little")
+    if size_byte == 0xFE:  # return 4 byte, little-endian
+        return tx[10:], int.from_bytes(bytes.fromhex(tx[2:10]), "little")
     # 0xff (rare) - return 8 byte, little-endian
-    return tx[18:], int.from_bytes(bytes.fromhex(tx[2:18]), 'little')
+    return tx[18:], int.from_bytes(bytes.fromhex(tx[2:18]), "little")
 
 
-# TODO - have this thing just spit out bytes, be prepared it will break little things everywhere
-def get_compact_size(n: int=None) -> str:
-    '''Get the compact size byte for given script.'''
+def get_compact_size(n: int = None) -> bytes:
+    """Get the compact size byte for given script."""
     if isinstance(n, float) and n.is_integer():
-        n = int(n)  # Convert integral floats to int
-    if not isinstance(n, int) or not (0 <= n and n <= MAX_COMPACT_SIZE):  # max get_compact_size
-        raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
+        n = int(n)  # Recover integral float -> int
+    if not isinstance(n, int) or not (
+        0 <= n and n <= MAX_COMPACT_SIZE
+    ):  # max get_compact_size
+        raise ValueError(
+            "get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff"
+        )
 
-    if n < 0xfd:  # single-byte case when  size < 0xffff
-        return hex(n)[2:].zfill(2)
-    elif n <= 0xffff:
-        return 'fd' + n.to_bytes(2, 'little').hex()
-    elif n <= 0xffffffff:
-        return 'fe' + n.to_bytes(4, 'little').hex()
-    else: # n > 0xffffffff
-        return 'ff' + n.to_bytes(8, 'little').hex()
+    if n < 0xFD:  # single-byte case when  size < 0xffff
+        return bytes([n])
+    elif n <= 0xFFFF:
+        return b"\xfd" + n.to_bytes(2, "little")
+    elif n <= 0xFFFFFFFF:
+        return b"\xfe" + n.to_bytes(4, "little")
+    else:  # n > 0xffffffff
+        return b"\xff" + n.to_bytes(8, "little")
+
+
+def serialize_varbytes(b: bytes) -> bytes:
+    """serialize variably-sized data as: compact-size byte || data bytes"""
+    return get_compact_size(len(b)) + b
+
 
 def hash_sort(arr, n_buckets: int = 997):
-    '''a very fast sorting algorithm for numeric data'''
+    """a very fast sorting algorithm for numeric data"""
     if arr is None:
         return []
 
@@ -102,7 +113,7 @@ def hash_sort(arr, n_buckets: int = 997):
     if min_v == max_v:
         return arr
 
-    buckets =[[] for _ in range(n_buckets)]
+    buckets = [[] for _ in range(n_buckets)]
 
     range_sz = max_v - min_v
     for n in arr:
@@ -121,20 +132,22 @@ def hash_sort(arr, n_buckets: int = 997):
 
 
 def get_tests(test_vector_file):
-    '''helper to load test vectors given in json format'''
-    with open(test_vector_file, 'r') as f:
+    """helper to load test vectors given in json format"""
+    with open(test_vector_file, "r") as f:
         testdata = json.load(f)
         f.close()
 
     return testdata
 
+
+# TODO - a lot more tests
 def run_tests():
-    '''Temporary testbench'''
+    """Temporary testbench"""
 
     #
     # # Test Conversions
     #
-    assert bytes_to_hex(b'\xde\xad\xbe\xef') == 'deadbeef'
+    assert bytes_to_hex(b"\xde\xad\xbe\xef") == "deadbeef"
     print(f"Expected: deadbeef\nGot:\t {bytes_to_hex(b'\xde\xad\xbe\xef')}")
 
     #
@@ -143,8 +156,8 @@ def run_tests():
     for i in range(0, 252):
         msg = bytes(random.getrandbits(1) for _ in range(i))
         size_byte = get_compact_size(len(msg))
-        if size_byte != f"{i:02x}" :
-            print(f"Expected: {hex(i)}\tGot: {size_byte}")
+        assert size_byte == (expected_byte := bytes([i]))
+        print(f"Expected: {expected_byte.hex()}\tGot: {size_byte.hex()}")
 
     print("\nTesting get_compact_size()...\n")
 
@@ -154,18 +167,29 @@ def run_tests():
     except ValueError:
         print("Caught an out of bounds input. Good.")
 
-    for n, b in zip([253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
-                    ['fdfd00', 'fdffff', 'fe00000100', 'feffffffff', 'ff0000000001000000', 'ffffffffffffffffff']):
+    for n, b in zip(
+        [253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
+        [
+            "fdfd00",
+            "fdffff",
+            "fe00000100",
+            "feffffffff",
+            "ff0000000001000000",
+            "ffffffffffffffffff",
+        ],
+    ):
+        expected_size = bytes.fromhex(b)
         compact_size = get_compact_size(n)
-        assert compact_size == b
+        assert compact_size == expected_size
         print(f"Expected: {b}\nGot:\t {compact_size}")
 
-    # n out of bounds, too bookoo
+    # n out of bounds, too beaucoup
     try:
         print(f"Expected: \nGot:\t {get_compact_size(18446744073709551616)}")
     except ValueError:
         print("Caught an out of bounds input. Good.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("\nRunning tests for helpers.py...\n")
     run_tests()

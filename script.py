@@ -1,4 +1,4 @@
-from helpers import get_compact_size():
+from helpers import get_compact_size
 import opcode
 
 MAX_SCRIPT_SIZE = 10000

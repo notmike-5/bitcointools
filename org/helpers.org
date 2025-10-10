@@ -50,6 +50,7 @@ def reverse_bytes(byte_str: bytes) -> bytes:
     '''Convert between big- and litttle-endian'''
     return bytes.fromhex(byte_str)[::-1].hex()
 
+
 #+end_src
 
 
@@ -91,22 +92,27 @@ def parse_compact_size(tx: str) -> (int, int):
     return tx[18:], int.from_bytes(bytes.fromhex(tx[2:18]), 'little')
 
 
-# TODO - have this thing just spit out bytes, be prepared it will break little things everywhere
-def get_compact_size(n: int=None) -> str:
+def get_compact_size(n: int = None) -> bytes:
     '''Get the compact size byte for given script.'''
     if isinstance(n, float) and n.is_integer():
-        n = int(n)  # Convert integral floats to int
+        n = int(n)  # Recover integral float -> int
     if not isinstance(n, int) or not (0 <= n and n <= MAX_COMPACT_SIZE):  # max get_compact_size
         raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
 
     if n < 0xfd:  # single-byte case when  size < 0xffff
-        return hex(n)[2:].zfill(2)
+        return bytes([n])
     elif n <= 0xffff:
-        return 'fd' + n.to_bytes(2, 'little').hex()
+        return b'\xfd' + n.to_bytes(2, 'little')
     elif n <= 0xffffffff:
-        return 'fe' + n.to_bytes(4, 'little').hex()
-    else: # n > 0xffffffff
-        return 'ff' + n.to_bytes(8, 'little').hex()
+        return b'\xfe' + n.to_bytes(4, 'little')
+    else:  # n > 0xffffffff
+        return b'\xff' + n.to_bytes(8, 'little')
+
+
+def serialize_varbytes(b: bytes) -> bytes:
+    '''serialize variably-sized data as: compact-size byte || data bytes'''
+    return get_compact_size(len(b)) + b
+
 
 def hash_sort(arr, n_buckets: int = 997):
     '''a very fast sorting algorithm for numeric data'''
@@ -117,7 +123,7 @@ def hash_sort(arr, n_buckets: int = 997):
     if min_v == max_v:
         return arr
 
-    buckets =[[] for _ in range(n_buckets)]
+    buckets = [[] for _ in range(n_buckets)]
 
     range_sz = max_v - min_v
     for n in arr:
@@ -148,6 +154,8 @@ def get_tests(test_vector_file):
 
 * Tests
 #+begin_src python :tangle ../helpers.py :results silent :session pybtc
+
+# TODO - a lot more tests
 def run_tests():
     '''Temporary testbench'''
 
@@ -163,8 +171,8 @@ def run_tests():
     for i in range(0, 252):
         msg = bytes(random.getrandbits(1) for _ in range(i))
         size_byte = get_compact_size(len(msg))
-        if size_byte != f"{i:02x}" :
-            print(f"Expected: {hex(i)}\tGot: {size_byte}")
+        assert size_byte == (expected_byte := bytes([i]))
+        print(f"Expected: {expected_byte.hex()}\tGot: {size_byte.hex()}")
 
     print("\nTesting get_compact_size()...\n")
 
@@ -176,11 +184,12 @@ def run_tests():
 
     for n, b in zip([253, 65535, 65536, 4294967295, 4294967296, 18446744073709551615],
                     ['fdfd00', 'fdffff', 'fe00000100', 'feffffffff', 'ff0000000001000000', 'ffffffffffffffffff']):
+        expected_size = bytes.fromhex(b)
         compact_size = get_compact_size(n)
-        assert compact_size == b
+        assert compact_size == expected_size
         print(f"Expected: {b}\nGot:\t {compact_size}")
 
-    # n out of bounds, too bookoo
+    # n out of bounds, too beaucoup
     try:
         print(f"Expected: \nGot:\t {get_compact_size(18446744073709551616)}")
     except ValueError:

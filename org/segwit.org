@@ -1,16 +1,39 @@
 * Imports
 #+begin_src python :tangle ../segwit.py :results silent :session pybtc
 
-from bitcointools.helpers import parse_varint
+from typing import List
+from helpers import parse_varint
 
 #+end_src
 
+# TO-DO: Determine if we want to keep/use these
+* Witness Classes
+#+begin_src python :tangle ../segwit.py :results silent :session pybtc
+
+class WitnessStackItem:
+    '''WitnessStackItem class'''
+    def __init__(self, item: str):
+        self.size = len(item) // 2
+        self.item = item
+
+class WitnessField:
+    '''WitnessField class'''
+    def __init__(self, stack: List[str]):
+        self.stack_size = len(stack)
+        self.stack = [WitnessStackItem(item) for item in stack]
+
+class Witness:
+    '''Witness class'''
+    def __init__(self, fields: List[List]):
+        self.fields = [WitnessField(f) for f in fields]
+
+#+end_src
 
 * Functions
 #+begin_src python :tangle ../segwit.py :results silent :session pybtc
 
 def sanitize_segwit(tx_hex: int, debug: bool = False) -> int:
-    '''Remove the offending pieces of a segwit transaction'''
+    '''Removes the offending pieces of a SegWit transaction and returns legacy TX'''
     tx, i = bytes.fromhex(tx_hex), 0
 
     version = tx[i:i+4]; i += 4     # 4 bytes
@@ -124,6 +147,7 @@ def sanitize_segwit(tx_hex: int, debug: bool = False) -> int:
 
     return serialized_non_witness.hex()
 
+# TODO this is also in bech32.org
 def segwit_scriptpubkey(witver, witprog):
     '''Construct a Segwit scriptPubKey for a given witness program.'''
     return bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog)

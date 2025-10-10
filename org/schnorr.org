@@ -7,7 +7,7 @@
 
 import hashlib
 from typing import Tuple, Optional, Any
-from bitcointools.hashes import sha256, tagged_hash
+from hashes import sha256, tagged_hash
 
 DEBUG = True
 
@@ -222,7 +222,7 @@ def test_vectors() -> bool:
     print("\nRunning tests for BIP-340 Schnorr signatures...")
 
     all_passed = True
-    with open(os.path.join(sys.path[0], 'bitcointools/test/schnorr_test_vectors.csv'), newline='') as csvfile:
+    with open(os.path.join(sys.path[0], 'test/schnorr_test_vectors.csv'), newline='') as csvfile:
         reader = csv.reader(csvfile)
         reader.__next__()
         for row in reader:

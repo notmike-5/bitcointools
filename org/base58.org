@@ -4,11 +4,10 @@
 * Imports
 #+begin_src python :tangle ../base58.py :results silent :session pybtc
 
-from bitcointools.hashes import hash160, hash256
+from hashes import hash160, hash256
 import secp256k1
 
 #+end_src
-
 
 * Constants / Defines
 #+begin_src python :tangle ../base58.py :results silent :session pybtc

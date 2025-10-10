@@ -1,30 +1,9 @@
 * Imports
 #+begin_src python :tangle ../sign.py :results silent :session pybtc
 
-from bitcointools.hashes import sha256, tagged_hash
-#from bitcointools.helpers import get_compact_size, serialize_varbytes  # TODO (see below w/ get_compact_size)
-from bitcointools.transaction import OutPoint, Transaction, TxOut
-
-MAX_COMPACT_SIZE = 2**64 - 1
-
-def get_compact_size(n: int = None) -> bytes:
-    '''Get the compact size byte for given script.'''
-
-    if not isinstance(n, int) or not (0 <= n <= MAX_COMPACT_SIZE):
-        raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
-
-    if n < 0xfd:  # single-byte case when  size < 0xffff
-        return n.to_bytes(1, 'little')
-    elif n <= 0xffff:
-        return b'\xfd' + n.to_bytes(2, 'little')
-    elif n <= 0xffffffff:
-        return b'\xfe' + n.to_bytes(4, 'little')
-    else:  # n > 0xffffffff
-        return b'\xff' + n.to_bytes(8, 'little')
-
-def serialize_varbytes(b: bytes) -> bytes:
-    '''serialize variably-sized data as: compact-size byte || data bytes'''
-    return get_compact_size(len(b)) + b
+from hashes import sha256, tagged_hash
+from helpers import get_compact_size, serialize_varbytes
+from transaction import OutPoint, Transaction, TxOut
 
 #+end_src
 
