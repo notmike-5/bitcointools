@@ -1,5 +1,5 @@
-from hashes import tagged_hash
-from helpers import (
+from bitcointools.hashes import tagged_hash
+from bitcointools.helpers import (
     bytes_to_hex,
     hex_to_bytes,
     get_compact_size,
