@@ -1,9 +1,9 @@
 * Imports
 #+begin_src python :tangle ../sign.py :results silent :session pybtc
 
-from hashes import sha256, tagged_hash
-from helpers import get_compact_size, serialize_varbytes
-from transaction import OutPoint, Transaction, TxOut
+from .hashes import sha256, tagged_hash
+from .helpers import get_compact_size, serialize_varbytes
+from .transaction import OutPoint, Transaction, TxOut
 
 #+end_src
 
@@ -68,7 +68,7 @@ class SigningContext:
         self.utxos = utxos
 
         # (Pre)Compute / Cache Expensive Hashes
-        ########################################
+
         # all input prevouts
         self.hash_prevouts = sha256(b''.join(
             txin.prevout.serialize() for txin in tx.inputs
@@ -112,10 +112,8 @@ class SigningContext:
         # Sanity Check
         if annex and annex[0] != 0x50:
             raise ValueError("Annex must start with 0x50")
-        if ext_flag != 0:
-            raise ValueError("ext_flag must be 0 until a softfork defines otherwise")
-        if message_ext:
-            raise ValueError("message_ext must be empty until defined otherwise")
+        if not ext_flag in [0, 1]:
+            raise ValueError("ext_flag must be in {0, 1}")
         if not is_valid_hashtype(sighash_type):
             raise ValueError(f"Unknown sighash type: {sighash_type}")
         if (base_type == SIGHASH_SINGLE) and (input_idx >= len(self.tx.outputs)):
@@ -147,9 +145,6 @@ class SigningContext:
         if annex_present := bool(annex):
             annex = serialize_varbytes(annex)
             hash_annex = sha256(annex)
-        else:
-            hash_annex = b''
-
 
         # Construct the Common Signature Message
         ########################################
@@ -161,7 +156,7 @@ class SigningContext:
         if not anyone_can_pay:
             message += hash_prevouts
             message += hash_amounts
-            message += hash_scriptpubkeys
+            message += hash_scriptPubkeys
             message += hash_sequences
 
         if base_type not in [SIGHASH_NONE, SIGHASH_SINGLE]:
@@ -177,12 +172,13 @@ class SigningContext:
             message += input_idx.to_bytes(4, 'little')  # index of input being signed for
 
         # annex serialization
-        message += annex
+        if annex_present:
+            message += annex
 
         # SIGHASH_SINGLE output serialization
         if base_type == SIGHASH_SINGLE:
              txout = self.tx.outputs[input_idx]
-             message += txout.serialize()
+             message += sha256(txout.serialize())
 
         # message extension (currently always empty if we got to here)
         if message_ext:

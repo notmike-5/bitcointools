@@ -1,27 +1,6 @@
-from bitcointools.hashes import sha256, tagged_hash
-#from bitcointools.helpers import get_compact_size, serialize_varbytes  # TODO (see below w/ get_compact_size)
-from bitcointools.transaction import OutPoint, Transaction, TxOut
-
-MAX_COMPACT_SIZE = 2**64 - 1
-
-def get_compact_size(n: int = None) -> bytes:
-    '''Get the compact size byte for given script.'''
-
-    if not isinstance(n, int) or not (0 <= n <= MAX_COMPACT_SIZE):
-        raise ValueError("get_compact_size: out of bounds! must be 0 <= n <= 0xffffffffffffffff")
-
-    if n < 0xfd:  # single-byte case when  size < 0xffff
-        return n.to_bytes(1, 'little')
-    elif n <= 0xffff:
-        return b'\xfd' + n.to_bytes(2, 'little')
-    elif n <= 0xffffffff:
-        return b'\xfe' + n.to_bytes(4, 'little')
-    else:  # n > 0xffffffff
-        return b'\xff' + n.to_bytes(8, 'little')
-
-def serialize_varbytes(b: bytes) -> bytes:
-    '''serialize variably-sized data as: compact-size byte || data bytes'''
-    return get_compact_size(len(b)) + b
+from .hashes import sha256, tagged_hash
+from .helpers import get_compact_size, serialize_varbytes
+from .transaction import OutPoint, Transaction, TxOut
 
 # SigHash Types
 SIGHASH_DEFAULT = 0x0  # Taproot only; implied when sighash byte is missing, and equivalent to SIGHASH_ALL
@@ -42,60 +21,77 @@ SIGHASH_TYPES = [
     SIGHASH_SINGLE,
     SIGHASH_ANYONECANPAY | SIGHASH_ALL,
     SIGHASH_ANYONECANPAY | SIGHASH_NONE,
-    SIGHASH_ANYONECANPAY | SIGHASH_SINGLE
+    SIGHASH_ANYONECANPAY | SIGHASH_SINGLE,
 ]
 
-EMPTY_HASH32 = b'\x00' * 32
+EMPTY_HASH32 = b"\x00" * 32
 
 
 def is_valid_hashtype(hash_type: int) -> bool:
-    '''make sure we have a valid sighash type'''
+    """make sure we have a valid sighash type"""
     return hash_type in SIGHASH_TYPES
 
+
 class SigningContext:
-    '''class to contain the nuts and bolts context needed to produce a sighash'''
+    """class to contain the nuts and bolts context needed to produce a sighash"""
 
     def __init__(self, tx: Transaction, utxos: dict[OutPoint, TxOut]) -> None:
         self.tx = tx
         self.utxos = utxos
 
         # (Pre)Compute / Cache Expensive Hashes
-        ########################################
+
         # all input prevouts
-        self.hash_prevouts = sha256(b''.join(
-            txin.prevout.serialize() for txin in tx.inputs
-        ))
+        self.hash_prevouts = sha256(
+            b"".join(txin.prevout.serialize() for txin in tx.inputs)
+        )
         # all input amounts
-        self.hash_amounts = sha256(b''.join(
-            self.utxos[txin.prevout].amount.to_bytes(8, byteorder='little') for txin in tx.inputs
-        ))
+        self.hash_amounts = sha256(
+            b"".join(
+                self.utxos[txin.prevout].amount.to_bytes(8, byteorder="little")
+                for txin in tx.inputs
+            )
+        )
 
         # all input scriptPubkeys
-        self.hash_scriptPubkeys = sha256(b''.join(
-            serialize_varbytes(utxos[txin.prevout].scriptPubkey) for txin in tx.inputs
-        ))
+        self.hash_scriptPubkeys = sha256(
+            b"".join(
+                serialize_varbytes(utxos[txin.prevout].scriptPubkey)
+                for txin in tx.inputs
+            )
+        )
 
         # all input sequences
-        self.hash_sequences = sha256(b''.join(
-            txin.sequence.to_bytes(4, byteorder='little') for txin in tx.inputs
-        ))
+        self.hash_sequences = sha256(
+            b"".join(
+                txin.sequence.to_bytes(4, byteorder="little") for txin in tx.inputs
+            )
+        )
 
         # all tx outputs
-        self.hash_outputs = sha256(b''.join(
-            txout.serialize() for txout in tx.outputs
-        ))
+        self.hash_outputs = sha256(b"".join(txout.serialize() for txout in tx.outputs))
 
         # pre-compute per-input serialization for ANYONECANPAY
         self.serialized_inputs = []
         for txin in tx.inputs:
-            s = (txin.prevout.serialize() +              # OutPoint = (txid, vout)
-                 self.utxos[txin.prevout].serialize() +  # amount & scriptPubkey from OutPoint
-                 txin.sequence.to_bytes(4, 'little'))    # sequence, 4-byte little-endian
+            s = (
+                txin.prevout.serialize()  # OutPoint = (txid, vout)
+                + self.utxos[
+                    txin.prevout
+                ].serialize()  # amount & scriptPubkey from OutPoint
+                + txin.sequence.to_bytes(4, "little")
+            )  # sequence, 4-byte little-endian
             self.serialized_inputs.append(s)
 
-
-    def taproot_sign(self, input_idx: int, sighash_type: int = SIGHASH_DEFAULT, ext_flag: int = 0, annex: bytes = None, message_ext: bytes = None) -> bytes:
-        '''compute the BIP-341 / Taproot Common Signature Message ('sighash') for given input index.'''
+    def taproot_sign(
+        self,
+        input_idx: int,
+        sighash_type: int = SIGHASH_DEFAULT,
+        ext_flag: int = 0,
+        annex: bytes = None,
+        message_ext: bytes = None,
+    ) -> bytes:
+        """compute the BIP-341 / Taproot Common Signature Message ('sighash') for given input index."""
 
         # Get the signature type
         base_type = sighash_type & 0x3
@@ -104,10 +100,8 @@ class SigningContext:
         # Sanity Check
         if annex and annex[0] != 0x50:
             raise ValueError("Annex must start with 0x50")
-        if ext_flag != 0:
-            raise ValueError("ext_flag must be 0 until a softfork defines otherwise")
-        if message_ext:
-            raise ValueError("message_ext must be empty until defined otherwise")
+        if not ext_flag in [0, 1]:
+            raise ValueError("ext_flag must be in {0, 1}")
         if not is_valid_hashtype(sighash_type):
             raise ValueError(f"Unknown sighash type: {sighash_type}")
         if (base_type == SIGHASH_SINGLE) and (input_idx >= len(self.tx.outputs)):
@@ -125,7 +119,9 @@ class SigningContext:
             hash_sequences = self.hash_sequences
         else:
             # else its 32 bytes of zero, baby
-            hash_prevouts = hash_amounts = hash_scriptPubkeys = hash_sequences = EMPTY_HASH32
+            hash_prevouts = hash_amounts = hash_scriptPubkeys = hash_sequences = (
+                EMPTY_HASH32
+            )
 
         # outputs
         if base_type == SIGHASH_ALL:  # sign all outputs
@@ -139,47 +135,45 @@ class SigningContext:
         if annex_present := bool(annex):
             annex = serialize_varbytes(annex)
             hash_annex = sha256(annex)
-        else:
-            hash_annex = b''
-
 
         # Construct the Common Signature Message
         ########################################
-        message = b'\x00'  # epoch
-        message += sighash_type.to_bytes(1, 'little')  # hash type
-        message += self.tx.version.to_bytes(4, 'little')  # version
-        message += self.tx.locktime.to_bytes(4, 'little')  # nLocktime
+        message = b"\x00"  # epoch
+        message += sighash_type.to_bytes(1, "little")  # hash type
+        message += self.tx.version.to_bytes(4, "little")  # version
+        message += self.tx.locktime.to_bytes(4, "little")  # nLocktime
 
         if not anyone_can_pay:
             message += hash_prevouts
             message += hash_amounts
-            message += hash_scriptpubkeys
+            message += hash_scriptPubkeys
             message += hash_sequences
 
         if base_type not in [SIGHASH_NONE, SIGHASH_SINGLE]:
             message += hash_outputs
 
         # spend type
-        message += (2 * ext_flag + (1 if annex_present else 0)).to_bytes(1, 'little')
+        message += (2 * ext_flag + (1 if annex_present else 0)).to_bytes(1, "little")
 
         # full serialization of this input
         if anyone_can_pay:
             message += self.serialized_inputs[input_idx]
         else:
-            message += input_idx.to_bytes(4, 'little')  # index of input being signed for
+            message += input_idx.to_bytes(
+                4, "little"
+            )  # index of input being signed for
 
         # annex serialization
-        message += annex
+        if annex_present:
+            message += annex
 
         # SIGHASH_SINGLE output serialization
         if base_type == SIGHASH_SINGLE:
-             txout = self.tx.outputs[input_idx]
-             message += txout.serialize()
+            txout = self.tx.outputs[input_idx]
+            message += sha256(txout.serialize())
 
         # message extension (currently always empty if we got to here)
         if message_ext:
             message += message_ext
 
         return tagged_hash("TapSighash", message)
-
-
