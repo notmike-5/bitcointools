@@ -176,9 +176,9 @@ class SigningContext:
             txout = self.tx.outputs[input_idx]
             message += sha256(txout.serialize())
 
-        # message extension (currently always empty if we got to here)
+        # message extension (BIP-342)
         if message_ext:
-            message += message_ext
+            message += bytes.fromhex(message_ext)
 
         # n.b. second return value can be useful for debugging
         return tagged_hash("TapSighash", message), message.hex()
