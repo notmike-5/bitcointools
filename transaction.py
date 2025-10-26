@@ -1,5 +1,10 @@
-from helpers import get_compact_size, hex_to_ascii, hex_to_bytes, serialize_varbytes
-from hashes import hash256
+from bitcointools.helpers import (
+    get_compact_size,
+    hex_to_ascii,
+    hex_to_bytes,
+    serialize_varbytes,
+)
+from bitcointools.hashes import hash256
 
 
 class OutPoint:
