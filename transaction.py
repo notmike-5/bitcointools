@@ -258,7 +258,7 @@ class Transaction:
         version: int = 1,
         inputs: list[TxIn] = None,
         outputs: list[TxOut] = None,
-        locktime: int = 0xFFFFFFFF,
+        locktime: int = 0,
     ) -> None:
         """Initialize transaction"""
 
