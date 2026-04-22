@@ -4,5 +4,5 @@
 mods=("address" "base58" "bech32" "bip32" "hashes" "helpers" "schnorr" "segwit" "taproot" "transaction")
 
 for m in "${mods[@]}"; do
-    python -m "$m"
+    python -m "bitcointools.""$m"
 done

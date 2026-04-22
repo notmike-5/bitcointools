@@ -1,0 +1,197 @@
+{
+    "version": 1,
+    "test_vectors": [
+        {
+            "id": "schnorr_m_360_0_0_340_0_0",
+            "objective": "Derives a Schnorr keypair via BIP360 PQHD path m/360'/0'/0'/340'/0'/0, constructs a single-leaf P2MR taptree with the xonly pubkey as the locking script, and produces scriptPubKey and mainnet bech32m address",
+            "given": {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "passphrase": null,
+                "derivationPaths": ["m/360'/0'/0'/340'/0'/0"]
+            },
+            "intermediary": {
+                "derivedKeys": [
+                    {
+                        "childSeed": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "childChainCode": "470a546a3d44684e66d11962bc8650b41e9a09f567f8ec33003dab8b9c2c92be",
+                        "secretKey": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "xonlyPubkey": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6"
+                    }
+                ],
+                "leaves": [
+                    {
+                        "weight": 1,
+                        "leafScriptHex": "20ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6ac",
+                        "leafScriptAsm": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6 OP_CHECKSIG"
+                    }
+                ],
+                "merkleRoot": "89838545bf18940cac530de35b315d5e40a8855155cc35d23342229eb0cd6f4e"
+            },
+            "expected": {
+                "scriptPubKey": "522089838545bf18940cac530de35b315d5e40a8855155cc35d23342229eb0cd6f4e",
+                "bip350Address": "bc1z3xpc23dlrz2qetznph34kv2ateq23p232hxrt53ngg3favxdda8qd9dxh0"
+            }
+        },
+        {
+            "id": "schnorr_two_keypairs_340_0_0_1",
+            "objective": "Derives two Schnorr keypairs via BIP360 PQHD paths m/360'/0'/0'/340'/0'/0 and m/360'/0'/0'/340'/0'/1, constructs a two-leaf P2MR taptree, and produces scriptPubKey and mainnet bech32m address",
+            "given": {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "passphrase": null,
+                "derivationPaths": [
+                    "m/360'/0'/0'/340'/0'/0",
+                    "m/360'/0'/0'/340'/0'/1"
+                ]
+            },
+            "intermediary": {
+                "derivedKeys": [
+                    {
+                        "childSeed": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "childChainCode": "470a546a3d44684e66d11962bc8650b41e9a09f567f8ec33003dab8b9c2c92be",
+                        "secretKey": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "xonlyPubkey": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6"
+                    },
+                    {
+                        "childSeed": "ec8ced710207d36facc72e4e2fded40051b947216061530ff44b7c8b7f295690",
+                        "childChainCode": "a915902cdcd022fd106b73636cf72a9cf025a7de1cb9e40958be8e5d35296439",
+                        "secretKey": "ec8ced710207d36facc72e4e2fded40051b947216061530ff44b7c8b7f295690",
+                        "xonlyPubkey": "376459967d6f266d0afad3f1436e59a4996483796e8c0711a9be9323c1fd80b5"
+                    }
+                ],
+                "leaves": [
+                    {
+                        "weight": 1,
+                        "leafScriptHex": "20ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6ac",
+                        "leafScriptAsm": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6 OP_CHECKSIG"
+                    },
+                    {
+                        "weight": 2,
+                        "leafScriptHex": "20376459967d6f266d0afad3f1436e59a4996483796e8c0711a9be9323c1fd80b5ac",
+                        "leafScriptAsm": "376459967d6f266d0afad3f1436e59a4996483796e8c0711a9be9323c1fd80b5 OP_CHECKSIG"
+                    }
+                ],
+                "merkleRoot": "1d02d6b6f25db64e98aa00a1c81fc94454d67718dd17f35420053bc9be722192"
+            },
+            "expected": {
+                "scriptPubKey": "52201d02d6b6f25db64e98aa00a1c81fc94454d67718dd17f35420053bc9be722192",
+                "bip350Address": "bc1zr5pdddhjtkmyax92qzsus87fg32dvaccm5tlx4pqq5aun0njyxfqlr52yf"
+            }
+        },
+        {
+            "id": "slh_dsa_m_360_0_0_205_0_0",
+            "objective": "Derives an SLH-DSA-128S keypair via BIP360 PQHD path m/360'/0'/0'/205'/0'/0, constructs a single-leaf P2MR taptree with the public key as the locking script, and produces scriptPubKey and mainnet bech32m address",
+            "given": {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "passphrase": null,
+                "derivationPaths": ["m/360'/0'/0'/205'/0'/0"]
+            },
+            "intermediary": {
+                "derivedKeys": [
+                    {
+                        "childSeed": "399bbbb52c3efa319e2eca9eb27aaeabb67335438838aa707a719d75eb4626a0",
+                        "childChainCode": "cc184e74f25ed50d85d05e9190a827ee4d14272513c9c5c8ea9fad21f066e14a",
+                        "secretKey": "66956a2328f4d0d618f447fe356226dd507d22ba29fc83c6ae0dd320bdfe8576f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794",
+                        "publicKey": "f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794"
+                    }
+                ],
+                "leaves": [
+                    {
+                        "weight": 1,
+                        "leafScriptHex": "20f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f77947f",
+                        "leafScriptAsm": "f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794 OP_SUBSTR"
+                    }
+                ],
+                "merkleRoot": "6399ba967863b30988e874d084055986554f0b4c439364f8c87c4841e2bbb94f"
+            },
+            "expected": {
+                "scriptPubKey": "52206399ba967863b30988e874d084055986554f0b4c439364f8c87c4841e2bbb94f",
+                "bip350Address": "bc1zvwvm49ncvwesnz8gwngggp2ese257z6vgwfkf7xg03yyrc4mh98s44jq37"
+            }
+        },
+        {
+            "id": "multileaf_340_205",
+            "objective": "Derives a Schnorr keypair (m/360'/0'/0'/340'/0'/0) and an SLH-DSA-128S keypair (m/360'/0'/0'/205'/0'/0) via BIP360 PQHD paths, constructs a two-leaf P2MR taptree with mixed algorithm leaf scripts, and produces scriptPubKey and mainnet bech32m address",
+            "given": {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "passphrase": null,
+                "derivationPaths": [
+                    "m/360'/0'/0'/340'/0'/0",
+                    "m/360'/0'/0'/205'/0'/0"
+                ]
+            },
+            "intermediary": {
+                "derivedKeys": [
+                    {
+                        "childSeed": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "childChainCode": "470a546a3d44684e66d11962bc8650b41e9a09f567f8ec33003dab8b9c2c92be",
+                        "secretKey": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "xonlyPubkey": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6"
+                    },
+                    {
+                        "childSeed": "399bbbb52c3efa319e2eca9eb27aaeabb67335438838aa707a719d75eb4626a0",
+                        "childChainCode": "cc184e74f25ed50d85d05e9190a827ee4d14272513c9c5c8ea9fad21f066e14a",
+                        "secretKey": "66956a2328f4d0d618f447fe356226dd507d22ba29fc83c6ae0dd320bdfe8576f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794",
+                        "publicKey": "f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794"
+                    }
+                ],
+                "leaves": [
+                    {
+                        "weight": 1,
+                        "leafScriptHex": "20ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6ac",
+                        "leafScriptAsm": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6 OP_CHECKSIG"
+                    },
+                    {
+                        "weight": 2,
+                        "leafScriptHex": "20f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f77947f",
+                        "leafScriptAsm": "f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794 OP_SUBSTR"
+                    }
+                ],
+                "merkleRoot": "5554e15ba1d850ac6bf723ee1633015e1e10224904b94d222620d96171c8904c"
+            },
+            "expected": {
+                "scriptPubKey": "52205554e15ba1d850ac6bf723ee1633015e1e10224904b94d222620d96171c8904c",
+                "bip350Address": "bc1z242wzkapmpg2c6lhy0hpvvcptc0pqgjfqju56g3xyrvkzuwgjpxqr3hcnr"
+            }
+        },
+        {
+            "id": "PQ/T_single_leaf_340_205",
+            "objective": "PostQuantum/Traditional scheme: Derives a Schnorr keypair (m/360'/0'/0'/340'/0'/0) and an SLH-DSA-128S keypair (m/360'/0'/0'/205'/0'/0) via BIP360 PQHD paths, constructs a single-leaf P2MR taptree combining both locking scripts into one leaf, and produces scriptPubKey and mainnet bech32m address",
+            "given": {
+                "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+                "passphrase": null,
+                "derivationPaths": [
+                    "m/360'/0'/0'/340'/0'/0",
+                    "m/360'/0'/0'/205'/0'/0"
+                ]
+            },
+            "intermediary": {
+                "derivedKeys": [
+                    {
+                        "childSeed": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "childChainCode": "470a546a3d44684e66d11962bc8650b41e9a09f567f8ec33003dab8b9c2c92be",
+                        "secretKey": "b4e4bd8eea76c1f080e45a88be3ef68351d3817b1882a5caa7cbc64833ec9d34",
+                        "xonlyPubkey": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6"
+                    },
+                    {
+                        "childSeed": "399bbbb52c3efa319e2eca9eb27aaeabb67335438838aa707a719d75eb4626a0",
+                        "childChainCode": "cc184e74f25ed50d85d05e9190a827ee4d14272513c9c5c8ea9fad21f066e14a",
+                        "secretKey": "66956a2328f4d0d618f447fe356226dd507d22ba29fc83c6ae0dd320bdfe8576f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794",
+                        "publicKey": "f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794"
+                    }
+                ],
+                "leaves": [
+                    {
+                        "weight": 1,
+                        "leafScriptHex": "20ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6ac20f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f77947f9a69",
+                        "leafScriptAsm": "ac65830ba524dd01a36d9023f073f823ba5fcc7ec2d0a7f2327e654a77f3dab6 OP_CHECKSIG f38969a30c0045999d7f850b8215a825ae8f6243b8b1d1a86d7c35194c6f7794 OP_SUBSTR OP_BOOLAND OP_VERIFY"
+                    }
+                ],
+                "merkleRoot": "1c5794d93c075c8df38d29ceebe7917ec081b6c641ee001a22d12aa777d83429"
+            },
+            "expected": {
+                "scriptPubKey": "52201c5794d93c075c8df38d29ceebe7917ec081b6c641ee001a22d12aa777d83429",
+                "bip350Address": "bc1zr3tefkfuqawgmuud988wheu30mqgrdkxg8hqqx3z6y42wa7cxs5ster40w"
+            }
+        }
+    ]
+}

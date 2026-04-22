@@ -1,7 +1,8 @@
 from bitcointools.hashes import tagged_hash
 import bitcointools.helpers
 
-class Leaf():
+
+class Leaf:
     def __init__(self, ver: int, script: str):
         self.ver = ver  # leaf version
         self.script = script
@@ -9,5 +10,3 @@ class Leaf():
     def __str__():
         print(f"TapLeaf Version: {self.ver}")
         print(f"Script: {script}")
-
-

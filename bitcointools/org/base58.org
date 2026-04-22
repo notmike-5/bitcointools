@@ -1,25 +1,40 @@
-from bitcointools.hashes import hash160, hash256
+
+* Docs
+
+* Imports
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
+
+from .hashes import hash160, hash256
+
+#+end_src
+
+* Constants / Defines
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
 
 # Base58 character set
-ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 # Version Bytes
-ZERO = P2PKH_VER = b"\x00"  # P2PK/P2PKH - Base58 result prefix 1
-P2SH_VER = SEGWIT_VER = b"\x05"  # P2SH/P2WSH P2WSH Base58 result prefix 3
-TESTNET_VER = b"\x6f"  # Base58 result prefix m or n
-PRIVKEY_WIF = b"\x80"  # Base58 result prefix 5, K, or L
+ZERO = P2PKH_VER = b'\x00'  # P2PK/P2PKH - Base58 result prefix 1
+P2SH_VER = SEGWIT_VER = b'\x05'  # P2SH/P2WSH P2WSH Base58 result prefix 3
+TESTNET_VER = b'\x6f'  # Base58 result prefix m or n
+PRIVKEY_WIF = b'\x80'  # Base58 result prefix 5, K, or L
 
+#+end_src
+
+
+* Base58 Encoding
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
 
 def base58_encode(v):
-    """Encode a string using Base58
+    '''Encode a string using Base58
     h/t to github: fortesp/bitcoinaddress
-    """
-
+    '''
     def iseq(s):  # there are diff versions
         return s
 
     origlen = len(v)
-    v = v.lstrip(b"\0")
+    v = v.lstrip(b'\0')
     newlen = len(v)
 
     p, acc = 1, 0
@@ -27,21 +42,19 @@ def base58_encode(v):
         acc += p * c
         p = p << 8
 
-    result = ""
+    result = ''
     while acc > 0:
         acc, mod = divmod(acc, 58)
         result += ALPHABET[mod]
 
     return (result + ALPHABET[0] * (origlen - newlen))[::-1]
 
-
 def base58check(payload):
     checksum = hash256(payload)[:4]
     return base58_encode(payload + checksum)
 
-
 def base58check_encode(pubkey: bytes):
-    """Base58Check encode the public key"""
+    '''Base58Check encode the public key'''
     assert pubkey[0] == 0x2 or pubkey[0] == 0x3  # only compressed public keys
 
     hashed_pubkey = hash160(pubkey)
@@ -52,6 +65,10 @@ def base58check_encode(pubkey: bytes):
 
     return pub_addr
 
+#+end_src
+
+* Base58 Decoding
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
 
 def base58_decode(s: str) -> bytes:
     """Pure base58 decoding (no checksum)"""
@@ -67,7 +84,6 @@ def base58_decode(s: str) -> bytes:
     leading_zeros = len(s) - len(s.lstrip(ALPHABET[0]))
 
     return b"\x00" * leading_zeros + result
-
 
 def base58check_decode(s: str) -> bytes:
     """
@@ -89,8 +105,17 @@ def base58check_decode(s: str) -> bytes:
     if checksum != computed:
         raise ValueError("Invalid Base58Check checksum")
 
-    return decoded[:-4]  # everything except the 4 checksum bytes
+    return decoded[:-4]   # everything except the 4 checksum bytes
 
+#+end_src
+
+* Test Vectors
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
+
+#+end_src
+
+* Main
+#+begin_src python :tangle ../base58.py :results silent :session pybtc
 
 if __name__ == "__main__":
     # Example: Bitcoin mainnet address
@@ -103,5 +128,7 @@ if __name__ == "__main__":
     # Example: WIF private key (compressed)
     wif = "KxFC1jmwwCoACiCAWZ3eXa96mBM6tb3TYzGmf6YwgdGWZgawvrtJ"
     version, privkey = base58check_decode(wif)
-    print(f"WIF version: {version} (0x{version:02x})")  # usually 0x80
+    print(f"WIF version: {version} (0x{version:02x})")     # usually 0x80
     print(f"Private key : {privkey.hex()}")
+
+#+end_src

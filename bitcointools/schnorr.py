@@ -1,8 +1,7 @@
 """schnorr signature implementation"""
 
-import hashlib
 from typing import Tuple, Optional, Any
-from bitcointools.hashes import sha256, tagged_hash
+from bitcointools.hashes import tagged_hash
 
 DEBUG = True
 
@@ -209,7 +208,8 @@ def test_vectors() -> bool:
 
     all_passed = True
     with open(
-        os.path.join(sys.path[0], "test/schnorr_test_vectors.csv"), newline=""
+        os.path.join(sys.path[0], "bitcointools/test/schnorr_test_vectors.csv"),
+        newline="",
     ) as csvfile:
         reader = csv.reader(csvfile)
         reader.__next__()

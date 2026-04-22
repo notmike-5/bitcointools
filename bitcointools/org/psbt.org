@@ -1,0 +1,76 @@
+*
+#+begin_src python :tangle ../psbt.py :results silent :session
+
+PSBT_HEADER = b'70736274ff'  # {magic bytes, ff}
+PSBT_SEPARATOR = b'00'
+
+key_types = {
+    'global': {
+        0: 'PSBT_GLOBAL_UNSIGNED_TX',
+        1: 'PSBT_GLOBAL_XPUB',
+        2: 'PSBT_GLOBAL_TX_VERSION',
+        3: 'PSBT_GLOBAL_FALLBACK_LOCKTIME',
+        4: 'PSBT_GLOBAL_INPUT_COUNT',
+        5: 'PSBT_GLOBAL_OUTPUT_COUNT',
+        6: 'PSBT_GLOBAL_TX_MODIFIABLE',
+        7: 'PSBT_GLOBAL_SP_ECDH_SHARE',
+        8: 'PSBT_GLOBAL_SP_DLEQ',
+        251: 'PSBT_GLOBAL_VERSION',
+        252: 'PSBT_GLOBAL_PROPRIETARY'
+    },
+    'input': {
+        0: 'PSBT_IN_NON_WITNESS_UTXO',
+        1: 'PSBT_IN_WITNESS_UTXO',
+        2: 'PSBT_IN_PARTIAL_SIG',
+        3: 'PSBT_IN_SIGHASH_TYPE',
+        4: 'PSBT_IN_REDEEM_SCRIPT',
+        5: 'PSBT_IN_WITNESS_SCRIPT',
+        6: 'PSBT_IN_BIP32_DERIVATION',
+        7: 'PSBT_IN_FINAL_SCRIPTSIG',
+        8: 'PSBT_IN_FINAL_SCRIPTWITNESS',
+        9: 'PSBT_IN_POR_COMMITMENT',
+        10: 'PSBT_IN_RIPEMD160',
+        11: 'PSBT_IN_SHA256',
+        12: 'PSBT_IN_HASH160',
+        13: 'PSBT_IN_HASH256',
+        14: 'PSBT_IN_PREVIOUS_TXID',
+        15: 'PSBT_IN_OUTPUT_INDEX',
+        16: 'PSBT_IN_SEQUENCE',
+        17: 'PSBT_IN_REQUIRED_TIME_LOCKTIME',
+        18: 'PSBT_IN_REQUIRED_HEIGHT_LOCKTIME',
+        19: 'PSBT_IN_TAP_KEY_SIG',
+        20: 'PSBT_IN_TAP_SCRIPT_SIG',
+        21: 'PSBT_IN_TAP_LEAF_SCRIPT',
+        22: 'PSBT_IN_TAP_BIP32_DERIVATION',
+        23: 'PSBT_IN_TAP_INTERNAL_KEY',
+        24: 'PSBT_IN_TAP_MERKLE_ROOT',
+        26: 'PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS',
+        27: 'PSBT_IN_MUSIG2_PUB_NONCE',
+        28: 'PSBT_IN_MUSIG2_PARTIAL_SIG',
+        29: 'PSBT_IN_SP_ECDH_SHARE',
+        30: 'PSBT_IN_SP_DLEQ',
+        252: 'PSBT_IN_PROPRIETARY'
+    },
+    'output': {
+        0: 'PSBT_OUT_REDEEM_SCRIPT',
+        1: 'WPSBT_OUT_WITNESS_SCRIPT',
+        2: 'PSBT_OUT_BIP32_DERIVATION',
+        3: 'PSBT_OUT_AMOUNT',
+        4: 'PSBT_OUT_SCRIPT',
+        5: 'PSBT_OUT_TAP_INTERNAL_KEY',
+        6: 'PSBT_OUT_TAP_TREE',
+        7: 'PSBT_OUT_TAP_BIP32_DERIVATION',
+        8: 'PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS',
+        9: 'PSBT_OUT_SP_V0_INFO',
+        10: 'PSBT_OUT_SP_V0_LABEL',
+        53: 'PSBT_OUT_DNSSEC_PROOF',
+        252: 'PSBT_OUT_PROPRIETARY'
+    }
+}
+
+#+end_src
+*
+*
+*
+*
+*

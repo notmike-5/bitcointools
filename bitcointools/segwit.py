@@ -1,5 +1,5 @@
 from typing import List
-from helpers import parse_varint
+from .helpers import parse_varint
 
 
 class WitnessStackItem:

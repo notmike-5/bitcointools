@@ -133,8 +133,8 @@ locktime (4-byte, little-endian): ffd30a00
 * Imports
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
-from bitcointools.helpers import get_compact_size, hex_to_ascii, hex_to_bytes, serialize_varbytes
-from bitcointools.hashes import hash256
+from .helpers import get_compact_size, hex_to_ascii, hex_to_bytes, serialize_varbytes
+from .hashes import hash256
 
 #+end_src
 
@@ -252,6 +252,7 @@ By default, sequence is set to 0xffffffff.
 
 #+begin_src python :tangle ../transaction.py :results silent :session pybtc
 
+#TODO: better handling of witness/scriptsig. Segwit shouldn't have a scriptsig. Legacy shouldn't have a witness. Technically a user could provide both, and its not currently handled. Also, TxIn could be created before there is a witness since signatures will be on the sighash/common signature message and this depends on the other input info.
 class TxIn:
     '''Input class for Bitcoin transactions'''
 
@@ -263,31 +264,22 @@ class TxIn:
         '''Initialize the Input'''
 
         # prevout
+        if not isinstance(prevout, OutPoint):
+            raise ValueError("The previous output must be an OutPoint")
         self.prevout = prevout
 
-        # SegWit
-        self.segwit = bool(witness)
-
-        # ScriptSig for prevout
-        if self.segwit:
-            self.scriptSig = b'\x00'  # SegWit has zero byte placeholder
-            if not witness:
-                raise ValueError("A witness is required for every SegWit input")
-            self.witness = witness
-            self.stack_size = get_compact_size(len(self.witness))
-        else:
+        # handle legacy scriptSig / segwit witness (if provided)
+        if all(x is not None for x in [scriptSig, witness]):
+            raise ValueError("Only one of scriptSig or witness can be given")
+        elif scriptSig is not None:
+            self.add_scriptSig(scriptSig)
+        elif witness is not None:
+            self.add_witness(witness)
+        else:  # default case
+            self.segwit = True
+            self.scriptSig = b'\x00'
             self.witness = None
-            match scriptSig:
-                case str():
-                    if not isinstance(int(scriptSig, 16), int):
-                        raise ValueError("You must provide a scriptSig for each legacy input.")
-                    self.scriptSig = hex_to_bytes(scriptSig)
-                case bytes():
-                    self.scriptSig = scriptSig
-                case _:
-                    raise ValueError("You must provide a scriptSig for each legacy input.")
-
-        self.scriptSig_size = get_compact_size(len(self.scriptSig))
+            self.stack_size = None
 
         # Sequence for e.g. nLocktime or replace-by-fee
         if not (0x0 <= sequence <= 0xffffffff):
@@ -330,6 +322,25 @@ class TxIn:
         # TO-DO: handle witness classes and validity checking
         # if self.witness:
         #     self.witness.assert_valid()
+
+    def add_scriptSig(self, scriptSig: str|bytes) -> None:
+        self.segwit = False
+        self.witness = None
+        match scriptSig:
+            case str():
+                if not isinstance(int(scriptSig, 16), int):
+                    raise ValueError("You must provide a scriptSig for each legacy input.")
+                self.scriptSig = hex_to_bytes(scriptSig)
+            case bytes():
+                self.scriptSig = scriptSig
+            case _:
+                raise ValueError("You must provide a scriptSig for each legacy input.")
+
+    def add_witness(self, witness: list[int]) -> None:
+        self.segwit = True
+        self.scriptSig = b'\x00'  # SegWit has zero byte placeholder
+        self.witness = witness
+        self.stack_size = get_compact_size(len(self.witness))
 
     def serialize(self) -> bytes:
         '''Return the serialized data for this input'''
@@ -409,6 +420,7 @@ class TxOut:
         return b
 
 #+end_src
+
 
 * Transaction Class
 Transaction container has
