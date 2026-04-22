@@ -1,46 +1,65 @@
 import hashlib
+import hmac
 import subprocess
 
+
 def sha256(data: bytes) -> bytes:
-    '''Compute the SHA-256 hash of input data'''
+    """Compute the SHA-256 hash of input data"""
     assert isinstance(data, bytes)
     return hashlib.sha256(data).digest()
 
+
 def hash256(data: bytes) -> bytes:
-    '''Compute the double SHA-256 hash of input data'''
+    """Compute the double SHA-256 hash of input data"""
     if not isinstance(data, bytes):
         print(f"data is {data} not bytes")
     return sha256(sha256(data))
 
+
 def tagged_hash(tag: str, data: bytes) -> bytes:
-    '''Compute the tagged hash of data as per BIP-340'''
+    """Compute the tagged hash of data as per BIP-340"""
     assert isinstance(data, bytes)
     assert isinstance(tag, str) or tag is None
     tag_hash = sha256(tag.encode())
     return sha256(tag_hash + tag_hash + data)
 
+
 def ripemd160(data: bytes):
-    '''Compute the RIPEMD-160 hash of input data'''
+    """Compute the RIPEMD-160 hash of input data"""
     assert isinstance(data, bytes)
-    r = hashlib.new('ripemd160')
+    r = hashlib.new("ripemd160")
     r.update(data)
     return r.digest()
 
+
 def hash160(data: bytes) -> bytes:
-    '''Compute a special double hash'''
+    """Compute a special double hash"""
     assert isinstance(data, bytes)
     return ripemd160(sha256(data))
 
+
 def _get_sha256_teststr(data):
-    '''Build string for polling the sha256 reference'''
+    """Build string for polling the sha256 reference"""
     return f"xxd -r -p <<< {data} | sha256sum | tr -d '  -'"
 
+
+# HMAC-SHA-512 Function
+def hmac_sha512(key: bytes, data: bytes = None) -> str:
+    """Returns an instance of HMAC-SHA-512 if `data` is None
+    Else Returns digest of HMAC-SHA-512 run once on data"""
+    if not data:
+        return hmac.new(key, digestmod=hashlib.sha512)
+    else:
+        assert isinstance(data, bytes)
+        return hmac.new(key, data, digestmod=hashlib.sha512).digest()
+
+
 def run_tests():
-    '''Some unit tests of the hash functions'''
+    """Some unit tests of the hash functions"""
     print("\nRunning hash function tests...\n")
 
     # Test 1: sha256 hash of hex string ’deadbeef’
-    testdata = 'deadbeef'
+    testdata = "deadbeef"
 
     our_hash = sha256(bytes.fromhex(testdata))
     good_hash = subprocess.getoutput(_get_sha256_teststr(testdata))
@@ -49,5 +68,6 @@ def run_tests():
     assert our_hash.hex() == good_hash
     print("Passed")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run_tests()

@@ -2,10 +2,10 @@
 #+begin_src python :tangle ../hashes.py :results silent :session pybtc
 
 import hashlib
+import hmac
 import subprocess
 
 #+end_src
-
 
 * Functions
 #+begin_src python :tangle ../hashes.py :results output silent :session pybtc
@@ -43,6 +43,16 @@ def hash160(data: bytes) -> bytes:
 def _get_sha256_teststr(data):
     '''Build string for polling the sha256 reference'''
     return f"xxd -r -p <<< {data} | sha256sum | tr -d '  -'"
+
+# HMAC-SHA-512 Function
+def hmac_sha512(key: bytes, data: bytes = None) -> str:
+    """Returns an instance of HMAC-SHA-512 if `data` is None
+    Else Returns digest of HMAC-SHA-512 run once on data"""
+    if not data:
+        return hmac.new(key, digestmod=hashlib.sha512)
+    else:
+        assert isinstance(data, bytes)
+        return hmac.new(key, data, digestmod=hashlib.sha512).digest()
 
 #+end_src
 
