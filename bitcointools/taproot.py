@@ -129,7 +129,7 @@ def create_taproot_mast(internal_pubkey_hex, script_tree):
 def BIP341_tests():
     print("\nRunning Taproot (BIP-0341) Tests...")
 
-    V = get_tests("test/bip341_wallet_test_vectors.json")
+    V = get_tests("bitcointools/test/bip341_wallet_test_vectors.json")
 
     #
     # BIP-341 - scriptPubKey Test Vectors
@@ -214,7 +214,7 @@ def BIP341_tests():
 def BIP360_tests():
     print("\nRunning Taproot (BIP-0360) Tests...")
 
-    V = get_tests("test/p2tsh_construction.json")
+    V = get_tests("bitcointools/test/p2tsh_construction.json")
 
     #
     # BIP-360 - Test Vectors
