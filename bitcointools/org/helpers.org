@@ -163,18 +163,19 @@ def run_tests():
     # # Test Conversions
     #
     assert bytes_to_hex(b'\xde\xad\xbe\xef') == 'deadbeef'
-    print(f"Expected: deadbeef\nGot:\t {bytes_to_hex(b'\xde\xad\xbe\xef')}")
+    print(f"Testing 0xdeadbeef\nExpected: deadbeef\nGot:\t {bytes_to_hex(b'\xde\xad\xbe\xef')}")
 
     #
     # # Test Compact Sizes
     #
+    print("\nTesting get_compact_size() single byte case (0x0-0x252)")
+
     for i in range(0, 252):
         msg = bytes(random.getrandbits(1) for _ in range(i))
         size_byte = get_compact_size(len(msg))
-        assert size_byte == (expected_byte := bytes([i]))
-        print(f"Expected: {expected_byte.hex()}\tGot: {size_byte.hex()}")
+        assert size_byte == (expected_byte := bytes([i])), f"Error: Expected: {expected_byte.hex()}\tGot: {size_byte.hex()}"
 
-    print("\nTesting get_compact_size()...\n")
+    print("\nTesting get_compact_size() edge cases\n")
 
     # n out of bounds, too teeny-tiny
     try:
